@@ -494,6 +494,16 @@ function renderReportHtml(r: Report): string {
       <ul>${r.contradictions.map((c) => `<li><strong>${esc(c.claim)}</strong> — ${esc(c.sides)} <span style="opacity:.7">[${c.citations.join(", ")}]</span></li>`).join("")}</ul>
       <h3>Open questions &amp; gaps</h3>
       <ul>${r.gaps.map((g) => `<li><strong>${esc(g.question)}</strong> — ${esc(g.why_it_matters)} <em>Next:</em> ${esc(g.suggested_next_step)}</li>`).join("")}</ul>
+      <h3>Deepen</h3>
+      <ul>
+        <li><strong>Best next evidence move</strong> — ${esc(r.gaps[0]?.suggested_next_step ?? "Expand the source set with tighter primary evidence.")}</li>
+        <li><strong>Where to press harder</strong> — ${esc(r.contradictions[0]?.claim ?? r.analysis.tensions[0] ?? "Pressure-test the weakest-supported claims against stronger evidence.")}</li>
+      </ul>
+      <h3>Guardrails</h3>
+      <ul>
+        <li><strong>Evidence boundary</strong> — Claims should stay anchored to the curated sources and their cited confidence range.</li>
+        <li><strong>Weak-claim watchlist</strong> — ${esc(r.analysis.tensions[0] ?? "Watch for overstated certainty where the evidence base is still mixed.")}</li>
+      </ul>
       <h3>Sources</h3>
       <ol>${r.sources.map((s) => `<li><a href="${s.url}" target="_blank" rel="noreferrer">${esc(s.title)}</a> — <span style="opacity:.7">${s.source_type}, confidence ${s.confidence.toFixed(2)}</span></li>`).join("")}</ol>
       <p style="opacity:.6;margin-top:24px;font-size:13px">Generated ${esc(r.generated_at)} — ORION simulated pipeline.</p>
