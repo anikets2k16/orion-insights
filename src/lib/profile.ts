@@ -48,9 +48,18 @@ export function useProfile() {
   const [profile, setProfile] = useState<Profile | null>(null);
   useEffect(() => {
     let alive = true;
-    fetchProfile().then((p) => alive && setProfile(p));
+    const load = () => fetchProfile().then((p) => alive && setProfile(p));
+    load();
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN" || event === "USER_UPDATED" || event === "INITIAL_SESSION") {
+        load();
+      } else if (event === "SIGNED_OUT") {
+        if (alive) setProfile(null);
+      }
+    });
     return () => {
       alive = false;
+      sub.subscription.unsubscribe();
     };
   }, []);
   return profile;
