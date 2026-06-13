@@ -150,6 +150,10 @@ function SessionPage() {
   }
 
   const showCuration = session.status === "awaiting_curation" && session.sources && !session.curated;
+  const hasCuratedSources = Array.isArray(session.curated) && session.curated.length > 0;
+  const phaseIndex = PIPELINE.indexOf(session.phase);
+  const hasCompletedStage = (phase: (typeof PIPELINE)[number]) =>
+    session.status === "complete" || (hasCuratedSources && phaseIndex > PIPELINE.indexOf(phase));
 
   return (
     <main>
@@ -244,7 +248,7 @@ function SessionPage() {
       )}
 
       <AnimatePresence>
-        {derived && (
+        {derived && hasCompletedStage("analyse") && (
           <SectionCard key="analysis" icon={<Brain size={16} />} title="Critical analysis">
             <p style={{ marginTop: 0, lineHeight: 1.65 }}>{derived.analysis.narrative}</p>
             <div style={{ display: "grid", gap: 14, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", marginTop: 12 }}>
@@ -264,7 +268,7 @@ function SessionPage() {
           </SectionCard>
         )}
 
-        {derived && derived.insights.length > 0 && (
+        {derived && hasCompletedStage("insight") && derived.insights.length > 0 && (
           <SectionCard key="insights" icon={<Lightbulb size={16} />} title="Insights" delay={0.05}>
             <div className="orion-insight-grid">
               {derived.insights.map((i, idx) => (
@@ -289,7 +293,7 @@ function SessionPage() {
           </SectionCard>
         )}
 
-        {derived && derived.contradictions.length > 0 && (
+        {derived && hasCompletedStage("contradict") && derived.contradictions.length > 0 && (
           <SectionCard key="contradictions" icon={<Scale size={16} />} title="Contradictions" delay={0.1}>
             {derived.contradictions.map((c) => {
               const [a, b] = (c.sides ?? "").split(/\s+(?:vs\.?|versus|\|)\s+/i);
@@ -314,7 +318,7 @@ function SessionPage() {
           </SectionCard>
         )}
 
-        {derived && derived.gaps.length > 0 && (
+        {derived && hasCompletedStage("gaps") && derived.gaps.length > 0 && (
           <SectionCard key="gaps" icon={<HelpCircle size={16} />} title="Open questions & gaps" delay={0.15}>
             {derived.gaps.map((g, i) => (
               <div key={g.question} className="orion-gap">
@@ -329,7 +333,7 @@ function SessionPage() {
           </SectionCard>
         )}
 
-        {derived && (derived.gaps.length > 0 || derived.contradictions.length > 0) && (
+        {derived && hasCompletedStage("deepen") && (derived.gaps.length > 0 || derived.contradictions.length > 0) && (
           <SectionCard key="deepen" icon={<Sparkles size={16} />} title="Deepen" delay={0.18}>
             <div className="orion-meta-grid">
               <div className="orion-meta-card">
@@ -344,7 +348,7 @@ function SessionPage() {
           </SectionCard>
         )}
 
-        {derived && (
+        {derived && hasCompletedStage("guardrail") && (
           <SectionCard key="guardrails" icon={<Sparkles size={16} />} title="Guardrails" delay={0.19}>
             <div className="orion-meta-grid">
               <div className="orion-meta-card">
