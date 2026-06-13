@@ -174,18 +174,45 @@ function SessionPage() {
         },
       });
       patch({ report: markdown });
+      await supabase
+        .from("research_sessions")
+        .update({
+          status: "complete",
+          source_count: allSources.length,
+          insight_count: insights.length,
+          contradiction_count: contradictions.length,
+          report_html: markdown,
+        })
+        .eq("id", sid);
     } catch (e) {
       setError(messageOf(e));
+      await supabase.from("research_sessions").update({ status: "failed" }).eq("id", sid);
     } finally {
       setRunning(false);
     }
   }
 
   if (!session) {
+    if (savedReport) {
+      return (
+        <main>
+          <section className="orion-card">
+            <h1 className="orion-grad">Saved Report</h1>
+            <pre style={{ whiteSpace: "pre-wrap", fontFamily: "inherit", margin: 0 }}>
+              {savedReport}
+            </pre>
+          </section>
+        </main>
+      );
+    }
     return (
       <main>
         <div className="orion-card">
           <h1 className="orion-grad">Loading…</h1>
+          <p className="orion-muted">If this session was created in another browser, only the saved report is available here.</p>
+          <Link to="/history" className="orion-btn-primary" style={{ display: "inline-block", marginTop: 12 }}>
+            Back to history
+          </Link>
         </div>
       </main>
     );
