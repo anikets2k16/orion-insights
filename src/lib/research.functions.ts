@@ -11,6 +11,19 @@ function model() {
   return createLovableAiGatewayProvider(key)(MODEL);
 }
 
+function clamp01(n: number) {
+  if (!Number.isFinite(n)) return 0.7;
+  return Math.max(0, Math.min(1, n));
+}
+
+function normalizeType(t: unknown): "academic" | "news" | "blog" | "report" {
+  const s = String(t ?? "").toLowerCase();
+  if (s.includes("academ") || s.includes("paper") || s.includes("journal")) return "academic";
+  if (s.includes("news")) return "news";
+  if (s.includes("report") || s.includes("white")) return "report";
+  return "blog";
+}
+
 const PERSONA_GUIDE: Record<string, string> = {
   researcher: "Prioritize methodological rigor, evidence chains, and academic perspectives.",
   product_manager: "Frame in terms of market opportunities, risks, user needs, and strategic bets.",
