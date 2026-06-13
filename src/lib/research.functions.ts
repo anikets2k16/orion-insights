@@ -64,7 +64,7 @@ export const retrieveAndScoreSources = createServerFn({ method: "POST" })
     if (raw.length === 0) return { sources: [] };
 
     const gateway = createLovableAiGatewayProvider(lovableKey);
-    const model = gateway("google/gemini-2.5-pro");
+    const model = gateway("google/gemini-1.5-pro-latest");
 
     const docs = raw.map((r, i) => ({
       idx: i + 1,
@@ -150,7 +150,7 @@ export const analyseAndSynthesize = createServerFn({ method: "POST" })
     if (!lovableKey) throw new Error("LOVABLE_API_KEY is not configured");
 
     const gateway = createLovableAiGatewayProvider(lovableKey);
-    const model = gateway("google/gemini-2.5-pro");
+    const model = gateway("google/gemini-1.5-pro-latest");
 
     const Schema = z.object({
       executive_summary: z.string(),
