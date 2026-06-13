@@ -112,7 +112,6 @@ export const retrieveAndScoreSources = createServerFn({ method: "POST" })
           citation: d.idx,
         };
       })
-      .filter((s) => s.confidence >= data.threshold)
       .sort((a, b) => b.confidence - a.confidence);
 
     return { sources };

@@ -159,6 +159,11 @@ function SessionPage() {
         </p>
 
         {error && <p style={{ marginTop: 14, color: "#ff7a90" }}>{error}</p>}
+        {session.error && (
+          <p style={{ marginTop: 8, color: "#ff7a90" }}>
+            <strong>Pipeline error:</strong> {session.error}
+          </p>
+        )}
       </section>
 
       {showCuration && (
@@ -166,6 +171,11 @@ function SessionPage() {
           <h2>
             Source curation <span className="orion-muted">— your decision</span>
           </h2>
+          {session.sources!.length === 0 && (
+            <p className="orion-muted">
+              No sources were returned by the retriever. Try a broader topic or a lower confidence threshold.
+            </p>
+          )}
           {session.sources!.map((s) => (
             <div className="orion-src" key={s.url}>
               <span className="score">{s.confidence.toFixed(2)}</span>
