@@ -1,7 +1,10 @@
 /**
- * Mock research pipeline — simulates the FastAPI backend so the UI is
- * fully clickable in the Lovable preview without external services.
- * The phase set mirrors orion-insights' orchestration graph.
+ * Type definitions + thin metadata cache for the ORION research flow.
+ *
+ * The real pipeline runs server-side in the Python FastAPI backend
+ * (api/ + agents/ + orchestration/ in this repo). This module just keeps
+ * shared types, persona labels, and a tiny localStorage mirror so the UI
+ * survives page reloads while polling the backend.
  */
 export const PIPELINE = [
   "intake",
@@ -51,16 +54,12 @@ export interface SessionState {
   persona: Persona;
   threshold: number;
   startedAt: number;
-  phase: Phase;
+  /** Free-form phase string echoed from the backend's /status endpoint. */
+  phase: string;
+  progress?: number;
   sources?: Source[];
   curated?: string[];
-  analysis?: string;
-  contradictions?: Contradiction[];
-  insights?: Insight[];
-  gaps?: string[];
-  followups?: Source[];
-  guardrail?: { pass: boolean; reason: string };
-  report?: string;
+  reportHtml?: string;
   error?: string;
 }
 
