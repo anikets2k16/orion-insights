@@ -156,6 +156,11 @@
   --orion-text: #e2e8f0;
   --orion-muted: #7c85a0;
   --orion-gradient: linear-gradient(135deg, #00d4ff, #8b5cf6, #06ffa5);
+  --orion-violet: #a78bfa;
+  --orion-success: #06ffa5;
+  --orion-warn: #fbbf24;
+  --orion-danger: #ff4d6d;
+  --orion-shadow-glow: 0 0 40px -10px color-mix(in oklab, var(--orion-blue) 55%, transparent);
 }
 
 html, body {
@@ -307,8 +312,16 @@ html, body {
 }
 .orion-progress > div {
   height: 100%;
-  background: linear-gradient(90deg, var(--orion-blue), var(--orion-cyan));
-  transition: width 0.4s;
+  background: linear-gradient(90deg, var(--orion-blue), var(--orion-violet), var(--orion-cyan));
+  background-size: 200% 100%;
+  animation: orion-progress-slide 3s linear infinite;
+  transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  border-radius: 3px;
+  box-shadow: 0 0 16px -2px color-mix(in oklab, var(--orion-blue) 60%, transparent);
+}
+@keyframes orion-progress-slide {
+  from { background-position: 0% 0%; }
+  to   { background-position: 200% 0%; }
 }
 
 .orion-muted { color: var(--orion-muted); font-size: 13px; }
@@ -377,4 +390,326 @@ html, body {
 @keyframes orion-drift {
   from { transform: translate3d(0, 0, 0); }
   to   { transform: translate3d(-280px, -280px, 0); }
+}
+
+/* ── Pipeline stepper ─────────────────────────────────────────────── */
+.orion-stepper {
+  position: relative;
+  margin: 18px 0 6px;
+  padding: 14px 4px 6px;
+}
+.orion-stepper-track {
+  position: relative;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.05), rgba(255,255,255,0.12), rgba(255,255,255,0.05));
+  border-radius: 2px;
+  margin: 22px 12px 14px;
+}
+.orion-stepper-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(90deg, var(--orion-blue), var(--orion-violet));
+  box-shadow: 0 0 14px color-mix(in oklab, var(--orion-blue) 70%, transparent);
+  border-radius: 2px;
+}
+.orion-stepper-beam {
+  position: absolute;
+  top: -1px;
+  height: 4px;
+  width: 60px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, transparent, var(--orion-cyan), transparent);
+  filter: blur(1px);
+  opacity: 0.9;
+}
+.orion-stepper-nodes {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 12px;
+}
+.orion-node {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #0a0a18;
+  border: 1.5px solid rgba(255,255,255,0.18);
+  transition: all 0.3s ease;
+}
+.orion-node.done {
+  background: linear-gradient(135deg, var(--orion-blue), var(--orion-violet));
+  border-color: transparent;
+  box-shadow: 0 0 10px color-mix(in oklab, var(--orion-blue) 60%, transparent);
+}
+.orion-node.active {
+  background: var(--orion-cyan);
+  border-color: var(--orion-cyan);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--orion-cyan) 25%, transparent),
+              0 0 18px color-mix(in oklab, var(--orion-cyan) 70%, transparent);
+}
+.orion-node.active::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 1.5px dashed color-mix(in oklab, var(--orion-cyan) 60%, transparent);
+  animation: orion-spin 6s linear infinite;
+}
+@keyframes orion-spin { to { transform: rotate(360deg); } }
+@keyframes orion-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.25); opacity: 0.7; }
+}
+.orion-node-labels {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 4px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--orion-muted);
+}
+.orion-node-label { flex: 1; text-align: center; transition: color 0.2s; }
+.orion-node-label.done { color: color-mix(in oklab, var(--orion-blue) 80%, white); }
+.orion-node-label.active { color: var(--orion-cyan); font-weight: 700; }
+
+.orion-phase-headline {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--orion-text);
+}
+.orion-phase-headline .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--orion-cyan);
+  display: inline-block;
+  animation: orion-pulse 1.6s ease-in-out infinite;
+  box-shadow: 0 0 10px var(--orion-cyan);
+}
+.orion-shimmer {
+  background: linear-gradient(90deg,
+    var(--orion-text) 0%,
+    var(--orion-text) 35%,
+    var(--orion-cyan) 50%,
+    var(--orion-text) 65%,
+    var(--orion-text) 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: orion-shimmer-slide 2.4s linear infinite;
+}
+@keyframes orion-shimmer-slide {
+  from { background-position: 100% 0; }
+  to   { background-position: -100% 0; }
+}
+
+/* ── Result cards ─────────────────────────────────────────────────── */
+.orion-section {
+  position: relative;
+  border-radius: 16px;
+  padding: 22px;
+  margin: 16px 0;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+  border: 1px solid var(--orion-border);
+  overflow: hidden;
+}
+.orion-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, color-mix(in oklab, var(--orion-blue) 50%, transparent), transparent 40%, color-mix(in oklab, var(--orion-violet) 40%, transparent));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+}
+.orion-section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.orion-section-head .icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, color-mix(in oklab, var(--orion-blue) 25%, transparent), color-mix(in oklab, var(--orion-violet) 25%, transparent));
+  color: var(--orion-cyan);
+  border: 1px solid var(--orion-border);
+}
+.orion-section-head h2 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--orion-text);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.orion-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--orion-border);
+  color: var(--orion-text);
+}
+.orion-chip.blue   { color: var(--orion-blue);    background: color-mix(in oklab, var(--orion-blue) 12%, transparent);    border-color: color-mix(in oklab, var(--orion-blue) 30%, transparent); }
+.orion-chip.violet { color: var(--orion-violet);  background: color-mix(in oklab, var(--orion-violet) 12%, transparent);  border-color: color-mix(in oklab, var(--orion-violet) 30%, transparent); }
+.orion-chip.green  { color: var(--orion-success); background: color-mix(in oklab, var(--orion-success) 12%, transparent); border-color: color-mix(in oklab, var(--orion-success) 30%, transparent); }
+.orion-chip.amber  { color: var(--orion-warn);    background: color-mix(in oklab, var(--orion-warn) 14%, transparent);    border-color: color-mix(in oklab, var(--orion-warn) 32%, transparent); }
+.orion-chip.red    { color: var(--orion-danger);  background: color-mix(in oklab, var(--orion-danger) 14%, transparent);  border-color: color-mix(in oklab, var(--orion-danger) 32%, transparent); }
+
+.orion-confbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--orion-muted);
+}
+.orion-confbar .track {
+  width: 80px;
+  height: 5px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.orion-confbar .fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--orion-blue), var(--orion-cyan));
+  box-shadow: 0 0 8px color-mix(in oklab, var(--orion-cyan) 50%, transparent);
+}
+.orion-confbar .fill.amber { background: linear-gradient(90deg, #f59e0b, var(--orion-warn)); box-shadow: 0 0 8px color-mix(in oklab, var(--orion-warn) 50%, transparent); }
+.orion-confbar .fill.red   { background: linear-gradient(90deg, #dc2626, var(--orion-danger)); box-shadow: 0 0 8px color-mix(in oklab, var(--orion-danger) 50%, transparent); }
+
+.orion-cite {
+  display: inline-block;
+  padding: 1px 7px;
+  margin: 0 2px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 6px;
+  background: rgba(0,212,255,0.10);
+  color: var(--orion-blue);
+  border: 1px solid rgba(0,212,255,0.25);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s;
+}
+.orion-cite:hover { background: rgba(0,212,255,0.22); transform: translateY(-1px); }
+
+.orion-insight-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+@media (min-width: 720px) {
+  .orion-insight-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.orion-insight-card {
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid var(--orion-border);
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.orion-insight-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in oklab, var(--orion-blue) 35%, transparent);
+  box-shadow: 0 12px 30px -16px color-mix(in oklab, var(--orion-blue) 45%, transparent);
+}
+.orion-insight-card h3 { margin: 0 0 6px; font-size: 15px; color: var(--orion-text); }
+.orion-insight-card .impl { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--orion-border); font-size: 12.5px; color: var(--orion-muted); font-style: italic; }
+
+.orion-contradiction {
+  padding: 14px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255,77,109,0.06), rgba(0,0,0,0.2));
+  border: 1px solid color-mix(in oklab, var(--orion-danger) 25%, transparent);
+  margin: 10px 0;
+}
+.orion-contradiction .claim { font-weight: 700; color: var(--orion-text); margin-bottom: 8px; }
+.orion-contradiction .sides {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  font-size: 13.5px;
+  color: var(--orion-text);
+}
+.orion-contradiction .vs {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  background: color-mix(in oklab, var(--orion-danger) 18%, transparent);
+  color: var(--orion-danger);
+  font-weight: 700;
+  font-size: 11px;
+  border: 1px solid color-mix(in oklab, var(--orion-danger) 35%, transparent);
+}
+@media (max-width: 560px) {
+  .orion-contradiction .sides { grid-template-columns: 1fr; }
+  .orion-contradiction .vs { justify-self: start; }
+}
+
+.orion-gap {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px dashed var(--orion-border);
+}
+.orion-gap:last-child { border-bottom: none; }
+.orion-gap .num {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  background: linear-gradient(135deg, var(--orion-blue), var(--orion-violet));
+  color: white;
+  font-weight: 800;
+  font-size: 13px;
+  box-shadow: 0 0 14px -4px var(--orion-blue);
+}
+.orion-gap .q { font-weight: 700; color: var(--orion-text); margin-bottom: 4px; }
+.orion-gap .why { color: var(--orion-text); font-size: 13.5px; margin-bottom: 4px; }
+.orion-gap .next { font-size: 12.5px; color: var(--orion-muted); }
+.orion-gap .next strong { color: var(--orion-cyan); font-weight: 600; }
+
+.orion-cloud { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.orion-report-frame {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--orion-border);
+  border-radius: 12px;
+  padding: 24px clamp(16px, 4vw, 36px);
+  max-width: 760px;
+  margin: 0 auto;
+  line-height: 1.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orion-progress > div,
+  .orion-shimmer,
+  .orion-node.active::before,
+  .orion-phase-headline .dot { animation: none !important; }
 }

@@ -1,5 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  Brain,
+  FileText,
+  HelpCircle,
+  Lightbulb,
+  Scale,
+  Sparkles,
+} from "lucide-react";
 import { supabase as _supabase } from "@/lib/supabase-browser";
 import {
   continueAfterCuration,
@@ -9,6 +18,14 @@ import {
   resumeInFlight,
   type SessionState,
 } from "@/lib/research";
+import { PipelineStepper } from "@/components/PipelineStepper";
+import {
+  CitationChips,
+  ConfidenceBar,
+  ConfidencePill,
+  SectionCard,
+  SourceTypeChip,
+} from "@/components/research/ResultPrimitives";
 
 const supabase = _supabase as unknown as { from: (table: string) => any };
 
@@ -98,7 +115,7 @@ function SessionPage() {
   }
 
   const progress = useMemo(() => session?.progress ?? 0, [session]);
-  const phaseIdx = session ? PIPELINE.indexOf(session.phase) : -1;
+  void PIPELINE;
 
   if (!session && savedHtml) {
     return (
@@ -144,18 +161,10 @@ function SessionPage() {
           <strong>Topic:</strong> {session.topic}
         </p>
 
-        <div className="orion-progress" aria-label="Pipeline progress">
-          <div style={{ width: `${Math.round(progress * 100)}%` }} />
-        </div>
+        <PipelineStepper phase={session.phase} progress={progress} status={session.status} />
 
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
-          {PIPELINE.map((p, i) => (
-            <span key={p} className={"orion-tag" + (i <= phaseIdx ? " sel" : "")}>{p}</span>
-          ))}
-        </div>
-
-        <p style={{ marginTop: 10 }} className="orion-muted">
-          Status: <strong>{session.status ?? "running"}</strong>
+        <p style={{ marginTop: 6 }} className="orion-muted">
+          Status: <strong style={{ color: "var(--orion-text)" }}>{session.status ?? "running"}</strong>
         </p>
 
         {error && <p style={{ marginTop: 14, color: "#ff7a90" }}>{error}</p>}
@@ -167,18 +176,25 @@ function SessionPage() {
       </section>
 
       {showCuration && (
-        <section className="orion-card">
+        <SectionCard icon={<Sparkles size={16} />} title="Source curation">
           <h2>
-            Source curation <span className="orion-muted">— your decision</span>
+            <span className="orion-muted" style={{ fontSize: 13, fontWeight: 400 }}>Your decision · pick the sources to analyse</span>
           </h2>
           {session.sources!.length === 0 && (
             <p className="orion-muted">
               No sources were returned by the retriever. Try a broader topic or a lower confidence threshold.
             </p>
           )}
-          {session.sources!.map((s) => (
-            <div className="orion-src" key={s.url}>
-              <span className="score">{s.confidence.toFixed(2)}</span>
+          {session.sources!.map((s, i) => (
+            <motion.div
+              className="orion-src"
+              key={s.url}
+              id={s.citation != null ? `src-${s.citation}` : undefined}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: i * 0.04 }}
+            >
+              <ConfidencePill value={s.confidence} />
               <label style={{ flex: 1, margin: 0, textTransform: "none", letterSpacing: 0 }}>
                 <input
                   type="checkbox"
@@ -190,7 +206,7 @@ function SessionPage() {
                   <span className="orion-muted" style={{ marginRight: 6 }}>[{s.citation}]</span>
                 )}
                 <a href={s.url} target="_blank" rel="noreferrer">{s.title}</a>{" "}
-                <span className="orion-tag">{s.source_type}</span>
+                <SourceTypeChip type={s.source_type} />
                 {s.rationale && (
                   <div className="orion-muted" style={{ marginTop: 4, fontSize: 13 }}>{s.rationale}</div>
                 )}
@@ -200,12 +216,16 @@ function SessionPage() {
                   </div>
                 )}
               </label>
-            </div>
+            </motion.div>
           ))}
-          <button className="orion-btn-primary" onClick={submitCuration}>
+          <button
+            className="orion-btn-primary"
+            onClick={submitCuration}
+            disabled={Object.values(selected).filter(Boolean).length === 0}
+          >
             Use selected sources &amp; continue
           </button>
-        </section>
+        </SectionCard>
       )}
 
       {session.curated && session.status !== "complete" && (
@@ -218,72 +238,98 @@ function SessionPage() {
         </section>
       )}
 
-      {session.analysis && (
-        <section className="orion-card">
-          <h2>Critical analysis</h2>
-          <p>{session.analysis.narrative}</p>
-          <h3 style={{ marginTop: 12 }}>Themes</h3>
-          <ul>{session.analysis.themes.map((t) => <li key={t}>{t}</li>)}</ul>
-          <h3>Tensions</h3>
-          <ul>{session.analysis.tensions.map((t) => <li key={t}>{t}</li>)}</ul>
-        </section>
-      )}
-
-      {session.insights && session.insights.length > 0 && (
-        <section className="orion-card">
-          <h2>Insights</h2>
-          {session.insights.map((i) => (
-            <div key={i.title} style={{ marginBottom: 12 }}>
-              <h3 style={{ margin: 0 }}>
-                {i.title}{" "}
-                <span className="orion-tag">conf {i.confidence.toFixed(2)}</span>
-              </h3>
-              <p style={{ margin: "4px 0" }}>{i.summary}</p>
-              <p className="orion-muted" style={{ margin: 0, fontSize: 13 }}>
-                <em>Implications:</em> {i.implications}
-                {i.citations && i.citations.length > 0 && ` [${i.citations.join(", ")}]`}
-              </p>
+      <AnimatePresence>
+        {session.analysis && (
+          <SectionCard key="analysis" icon={<Brain size={16} />} title="Critical analysis">
+            <p style={{ marginTop: 0, lineHeight: 1.65 }}>{session.analysis.narrative}</p>
+            <div style={{ display: "grid", gap: 14, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", marginTop: 12 }}>
+              <div>
+                <div className="orion-muted" style={{ marginBottom: 6, fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase" }}>Themes</div>
+                <div className="orion-cloud">
+                  {session.analysis.themes.map((t) => <span key={t} className="orion-chip blue">{t}</span>)}
+                </div>
+              </div>
+              <div>
+                <div className="orion-muted" style={{ marginBottom: 6, fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase" }}>Tensions</div>
+                <div className="orion-cloud">
+                  {session.analysis.tensions.map((t) => <span key={t} className="orion-chip amber">{t}</span>)}
+                </div>
+              </div>
             </div>
-          ))}
-        </section>
-      )}
+          </SectionCard>
+        )}
 
-      {session.contradictions && session.contradictions.length > 0 && (
-        <section className="orion-card">
-          <h2>Contradictions</h2>
-          {session.contradictions.map((c) => (
-            <div key={c.claim} style={{ marginBottom: 10 }}>
-              <strong>{c.claim}</strong>
-              <p style={{ margin: "4px 0" }}>{c.sides}</p>
-              <p className="orion-muted" style={{ margin: 0, fontSize: 13 }}>
-                [{c.citations.join(", ")}]
-              </p>
+        {session.insights && session.insights.length > 0 && (
+          <SectionCard key="insights" icon={<Lightbulb size={16} />} title="Insights" delay={0.05}>
+            <div className="orion-insight-grid">
+              {session.insights.map((i, idx) => (
+                <motion.div
+                  className="orion-insight-card"
+                  key={i.title}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, delay: idx * 0.06 }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                    <h3>{i.title}</h3>
+                    <ConfidenceBar value={i.confidence} />
+                  </div>
+                  <p style={{ margin: "6px 0 0", fontSize: 14, lineHeight: 1.55 }}>{i.summary}</p>
+                  <div className="impl">
+                    {i.implications} <CitationChips ids={i.citations} />
+                  </div>
+                </motion.div>
+              ))}
             </div>
-          ))}
-        </section>
-      )}
+          </SectionCard>
+        )}
 
-      {session.gaps && session.gaps.length > 0 && (
-        <section className="orion-card">
-          <h2>Open questions &amp; gaps</h2>
-          {session.gaps.map((g) => (
-            <div key={g.question} style={{ marginBottom: 10 }}>
-              <strong>{g.question}</strong>
-              <p style={{ margin: "4px 0" }}>{g.why_it_matters}</p>
-              <p className="orion-muted" style={{ margin: 0, fontSize: 13 }}>
-                <em>Next step:</em> {g.suggested_next_step}
-              </p>
-            </div>
-          ))}
-        </section>
-      )}
+        {session.contradictions && session.contradictions.length > 0 && (
+          <SectionCard key="contradictions" icon={<Scale size={16} />} title="Contradictions" delay={0.1}>
+            {session.contradictions.map((c) => {
+              const [a, b] = (c.sides ?? "").split(/\s+(?:vs\.?|versus|\|)\s+/i);
+              return (
+                <div key={c.claim} className="orion-contradiction">
+                  <div className="claim">{c.claim}</div>
+                  {b ? (
+                    <div className="sides">
+                      <div>{a}</div>
+                      <div className="vs">VS</div>
+                      <div>{b}</div>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 13.5 }}>{c.sides}</div>
+                  )}
+                  <div style={{ marginTop: 8 }}>
+                    <CitationChips ids={c.citations} />
+                  </div>
+                </div>
+              );
+            })}
+          </SectionCard>
+        )}
 
-      {session.reportHtml && (
-        <section className="orion-card">
-          <h2>Report</h2>
-          <div dangerouslySetInnerHTML={{ __html: session.reportHtml }} />
-        </section>
-      )}
+        {session.gaps && session.gaps.length > 0 && (
+          <SectionCard key="gaps" icon={<HelpCircle size={16} />} title="Open questions & gaps" delay={0.15}>
+            {session.gaps.map((g, i) => (
+              <div key={g.question} className="orion-gap">
+                <div className="num">{i + 1}</div>
+                <div>
+                  <div className="q">{g.question}</div>
+                  <div className="why">{g.why_it_matters}</div>
+                  <div className="next"><strong>Next step:</strong> {g.suggested_next_step}</div>
+                </div>
+              </div>
+            ))}
+          </SectionCard>
+        )}
+
+        {session.reportHtml && (
+          <SectionCard key="report" icon={<FileText size={16} />} title="Report" delay={0.2}>
+            <div className="orion-report-frame" dangerouslySetInnerHTML={{ __html: session.reportHtml }} />
+          </SectionCard>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
