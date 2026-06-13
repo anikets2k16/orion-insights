@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AGENT_ROLES, AVAILABLE_MODELS, type AgentRole } from "../../lib/models";
+import { fetchProfile, updateProfile } from "@/lib/profile";
 
 export const Route = createFileRoute("/_authenticated/agents")({
   head: () => ({
@@ -33,6 +34,19 @@ function AgentsPage() {
     Object.fromEntries(AGENT_ROLES.map((r) => [r, defaultFor(r)])) as Record<AgentRole, string>,
   );
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchProfile().then((p) => {
+      if (!p) return;
+      const stored = p.agent_models ?? {};
+      setConfig((prev) => {
+        const next = { ...prev };
+        for (const r of AGENT_ROLES) if (stored[r]) next[r] = stored[r];
+        return next;
+      });
+    });
+  }, []);
 
   return (
     <main>
@@ -69,18 +83,24 @@ function AgentsPage() {
 
         <button
           className="orion-btn-primary"
-          onClick={() => {
-            window.localStorage.setItem("orion.agent_config", JSON.stringify(config));
-            setSaved(true);
+          onClick={async () => {
+            setError(null);
+            try {
+              await updateProfile({ agent_models: config });
+              setSaved(true);
+            } catch (e) {
+              setError(e instanceof Error ? e.message : String(e));
+            }
           }}
         >
           Save configuration
         </button>
         {saved && (
           <p className="orion-muted" style={{ marginTop: 10 }}>
-            Saved locally. Will apply when a backend is connected.
+            Saved to your profile.
           </p>
         )}
+        {error && <p style={{ color: "#ff7a90", marginTop: 10 }}>{error}</p>}
       </section>
 
       <section className="orion-card">
