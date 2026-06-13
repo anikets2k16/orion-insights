@@ -323,16 +323,99 @@ function renderReportHtml(r: Report): string {
 
 const PHASE_MS = 700;
 
+/**
+ * Background promises keyed by sid for in-flight retrieval/synthesis calls.
+ * The phase ticker waits on these before advancing past their gating phase.
+ */
+const retrievalPromises = new Map<string, Promise<void>>();
+const synthesisPromises = new Map<string, Promise<void>>();
+
+async function runRetrieval(sid: string) {
+  const s = sessions.get(sid);
+  if (!s) return;
+  try {
+    const { retrieveAndScoreSources } = await import("./research.functions");
+    const { sources } = await retrieveAndScoreSources({
+      data: { topic: s.topic, persona: s.persona, threshold: s.threshold },
+    });
+    updateSession(sid, { sources });
+  } catch (e) {
+    updateSession(sid, {
+      error: `Retrieval failed: ${e instanceof Error ? e.message : String(e)}`,
+      sources: [],
+    });
+  }
+}
+
+async function runSynthesis(sid: string) {
+  const s = sessions.get(sid);
+  if (!s) return;
+  const sources = (s.sources ?? []).filter((src) => !s.curated || s.curated.includes(src.url));
+  if (sources.length === 0) {
+    updateSession(sid, { error: "No sources selected for synthesis." });
+    return;
+  }
+  try {
+    const { analyseAndSynthesize } = await import("./research.functions");
+    const out = await analyseAndSynthesize({
+      data: {
+        topic: s.topic,
+        persona: s.persona,
+        threshold: s.threshold,
+        sources: sources.map((src) => ({
+          url: src.url,
+          title: src.title,
+          source_type: src.source_type,
+          confidence: src.confidence,
+          snippet: src.snippet,
+          citation: src.citation,
+        })),
+      },
+    });
+    updateSession(sid, {
+      analysis: out.analysis,
+      insights: out.insights,
+      contradictions: out.contradictions,
+      gaps: out.gaps,
+      report: undefined,
+    });
+    // Stash exec summary on state so buildReportObject can use it.
+    const next = sessions.get(sid);
+    if (next) sessions.set(sid, { ...next, ...({ _execSummary: out.executive_summary } as Partial<SessionState>) });
+  } catch (e) {
+    updateSession(sid, {
+      error: `Synthesis failed: ${e instanceof Error ? e.message : String(e)}`,
+    });
+  }
+}
+
 function schedule(sid: string) {
   if (typeof window === "undefined") return;
   const tick = () => {
     const s = sessions.get(sid);
     if (!s) return;
     const idx = PIPELINE.indexOf(s.phase);
-    // Pause at 'score' for user curation.
+    // Pause at 'score' for user curation — and only once retrieval is done.
     if (s.phase === "score" && !s.curated) {
+      // Wait for retrieval to complete before exposing sources for curation.
+      const p = retrievalPromises.get(sid);
+      if (p) {
+        p.then(() => window.setTimeout(tick, 200));
+        retrievalPromises.delete(sid);
+        updateSession(sid, { status: "running" });
+        return;
+      }
       updateSession(sid, { status: "awaiting_curation", progress: (idx + 1) / PIPELINE.length });
       return;
+    }
+    // Once curated, we need the synthesis to land before showing analyse/insight/etc.
+    if (s.phase === "score" && s.curated) {
+      const p = synthesisPromises.get(sid);
+      if (p) {
+        p.then(() => window.setTimeout(tick, 200));
+        synthesisPromises.delete(sid);
+        return;
+      }
     }
     if (idx >= PIPELINE.length - 1) {
       const completed = updateSession(sid, { status: "complete", progress: 1 });
@@ -348,11 +431,6 @@ function schedule(sid: string) {
       progress: (idx + 1) / PIPELINE.length,
       status: "running",
     };
-    if (next === "score") patch.sources = mockSources(s.topic, s.threshold);
-    if (next === "analyse") patch.analysis = mockAnalysis(s.topic, s.persona);
-    if (next === "contradict") patch.contradictions = mockContradictions(s.topic);
-    if (next === "insight") patch.insights = mockInsights(s.topic, s.persona);
-    if (next === "gaps") patch.gaps = mockGaps(s.topic);
     updateSession(sid, patch);
     window.setTimeout(tick, PHASE_MS);
   };
@@ -379,6 +457,9 @@ export async function startResearch(input: {
   };
   sessions.set(sid, state);
   persist();
+  // Fire real retrieval immediately so it's likely ready by the time the
+  // ticker reaches the 'score' phase.
+  retrievalPromises.set(sid, runRetrieval(sid));
   schedule(sid);
   return state;
 }
@@ -388,7 +469,10 @@ export function continueAfterCuration(sid: string, urls: string[]): SessionState
   const s = getSession(sid);
   if (!s) return null;
   const next = updateSession(sid, { curated: urls, status: "running" });
-  if (next) schedule(sid);
+  if (next) {
+    synthesisPromises.set(sid, runSynthesis(sid));
+    schedule(sid);
+  }
   return next;
 }
 
