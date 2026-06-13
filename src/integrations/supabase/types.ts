@@ -14,7 +14,90 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          agent_models: Json
+          avatar_url: string | null
+          created_at: string
+          default_persona: string
+          default_threshold: number
+          display_name: string | null
+          id: string
+          theme: string
+          updated_at: string
+        }
+        Insert: {
+          agent_models?: Json
+          avatar_url?: string | null
+          created_at?: string
+          default_persona?: string
+          default_threshold?: number
+          display_name?: string | null
+          id: string
+          theme?: string
+          updated_at?: string
+        }
+        Update: {
+          agent_models?: Json
+          avatar_url?: string | null
+          created_at?: string
+          default_persona?: string
+          default_threshold?: number
+          display_name?: string | null
+          id?: string
+          theme?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      research_sessions: {
+        Row: {
+          contradiction_count: number
+          created_at: string
+          id: string
+          insight_count: number
+          name: string | null
+          persona: string
+          report_html: string | null
+          source_count: number
+          status: string
+          threshold: number
+          topic: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contradiction_count?: number
+          created_at?: string
+          id: string
+          insight_count?: number
+          name?: string | null
+          persona: string
+          report_html?: string | null
+          source_count?: number
+          status?: string
+          threshold?: number
+          topic: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contradiction_count?: number
+          created_at?: string
+          id?: string
+          insight_count?: number
+          name?: string | null
+          persona?: string
+          report_html?: string | null
+          source_count?: number
+          status?: string
+          threshold?: number
+          topic?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
