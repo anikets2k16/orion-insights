@@ -1,6 +1,9 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { supabase as _supabase } from "@/integrations/supabase/client";
+
+const supabase = _supabase as unknown as { from: (table: string) => any };
 import {
   PIPELINE,
   getSession,
@@ -31,13 +34,7 @@ export const Route = createFileRoute("/_authenticated/session/$sid")({
       { property: "og:description", content: "Watch the agents work and curate the sources." },
     ],
   }),
-  loader: ({ params }) => {
-    if (typeof window !== "undefined") {
-      const s = getSession(params.sid);
-      if (!s) throw notFound();
-    }
-    return { sid: params.sid };
-  },
+  loader: ({ params }) => ({ sid: params.sid }),
   notFoundComponent: () => (
     <div className="orion-card">
       <h1 className="orion-grad">Session not found</h1>
@@ -60,6 +57,7 @@ export const Route = createFileRoute("/_authenticated/session/$sid")({
 function SessionPage() {
   const { sid } = Route.useParams();
   const [session, setSession] = useState<SessionState | null>(() => getSession(sid));
+  const [savedReport, setSavedReport] = useState<string | null>(null);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
@@ -78,6 +76,19 @@ function SessionPage() {
     const next = updateSession(sid, p);
     if (next) setSession(next);
   }
+
+  // Load a saved report if revisiting a past session that isn't in local cache.
+  useEffect(() => {
+    if (session) return;
+    (async () => {
+      const { data } = await supabase
+        .from("research_sessions")
+        .select("report_html")
+        .eq("id", sid)
+        .maybeSingle();
+      if (data?.report_html) setSavedReport(data.report_html);
+    })();
+  }, [session, sid]);
 
   // Phase 1: intake -> retrieve sources (auto on mount)
   useEffect(() => {
