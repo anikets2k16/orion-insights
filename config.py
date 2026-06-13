@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     app_version: str = "2.0.0"
     environment: Literal["local", "staging", "production"] = "local"
     debug: bool = False
+    # Comma-separated allowed CORS origins. Add your Lovable/frontend URL in production.
+    cors_origins: str = Field(
+        default="http://localhost:3000,http://localhost:5173",
+        validation_alias="ORION_CORS_ORIGINS",
+    )
 
     # ── Determinism (NFR-1) ──
     deterministic: bool = Field(default=True, validation_alias="ORION_DETERMINISTIC")

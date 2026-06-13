@@ -1,0 +1,65 @@
+# Render blueprint — one-click deploy of the ORION Python backend.
+# Render dashboard → New → Blueprint → connect this repo. Fill the `sync: false` secrets.
+# After deploy, copy the orion-api URL into the Lovable frontend's VITE_API_URL, and add the
+# Lovable site URL to ORION_CORS_ORIGINS below.
+services:
+  - type: web
+    name: orion-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: TAVILY_API_KEY
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ORION_TASK_BACKEND
+        value: celery
+      - key: ORION_SESSION_BACKEND
+        value: redis
+      - key: ORION_CORS_ORIGINS
+        sync: false        # e.g. https://your-app.lovable.app
+      - key: REDIS_URL
+        fromService: {type: redis, name: orion-redis, property: connectionString}
+      - key: DATABASE_URL
+        fromDatabase: {name: orion-db, property: connectionString}
+
+  - type: worker
+    name: orion-worker
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: celery -A observability.celery_app worker --loglevel=info -Q research_tasks
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: TAVILY_API_KEY
+        sync: false
+      - key: ORION_SESSION_BACKEND
+        value: redis
+      - key: REDIS_URL
+        fromService: {type: redis, name: orion-redis, property: connectionString}
+      - key: DATABASE_URL
+        fromDatabase: {name: orion-db, property: connectionString}
+
+  - type: redis
+    name: orion-redis
+    plan: free
+    maxmemoryPolicy: noeviction
+    ipAllowList: []
+
+databases:
+  - name: orion-db
+    plan: free
