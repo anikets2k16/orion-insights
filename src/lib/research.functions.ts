@@ -196,35 +196,37 @@ export const analyseAndSynthesize = createServerFn({ method: "POST" })
     const model = gateway("google/gemini-2.5-pro");
 
     const Schema = z.object({
-      executive_summary: z.string().describe("3-5 sentence summary of the findings"),
-      analysis: z.object({
-        themes: z.array(z.string()).catch([]).describe("Key themes identified"),
-        tensions: z.array(z.string()).catch([]).describe("Conflicts or tensions between sources"),
-        narrative: z.string().describe("Overall narrative synthesis"),
-      }),
+      executive_summary: z.string().catch("").describe("3-5 sentence summary of the findings"),
+      analysis: z
+        .object({
+          themes: z.array(z.string()).catch([]).describe("Key themes identified"),
+          tensions: z.array(z.string()).catch([]).describe("Conflicts or tensions between sources"),
+          narrative: z.string().catch("").describe("Overall narrative synthesis"),
+        })
+        .catch({ themes: [], tensions: [], narrative: "" }),
       insights: z.array(
         z.object({
-          title: z.string().describe("Insight title"),
-          summary: z.string().describe("Concise summary"),
-          implications: z.string().describe("Implications for the persona"),
+          title: z.string().catch("").describe("Insight title"),
+          summary: z.string().catch("").describe("Concise summary"),
+          implications: z.string().catch("").describe("Implications for the persona"),
           confidence: confidenceSchema.describe("0.0 to 1.0"),
           citations: citationsSchema.describe("Source indices"),
         }),
-      ).describe("3-5 key insights from sources"),
+      ).catch([]).describe("3-5 key insights from sources"),
       contradictions: z.array(
         z.object({
-          claim: z.string().describe("The conflicting claim"),
-          sides: z.string().describe("The different perspectives"),
+          claim: z.string().catch("").describe("The conflicting claim"),
+          sides: z.string().catch("").describe("The different perspectives"),
           citations: citationsSchema.describe("Source indices"),
         }),
-      ).default([]).describe("Significant disagreements found between sources"),
+      ).catch([]).describe("Significant disagreements found between sources"),
       gaps: z.array(
         z.object({
-          question: z.string().describe("The open question"),
-          why_it_matters: z.string().describe("Why this gap is important"),
-          suggested_next_step: z.string().describe("Recommended next research step"),
+          question: z.string().catch("").describe("The open question"),
+          why_it_matters: z.string().catch("").describe("Why this gap is important"),
+          suggested_next_step: z.string().catch("").describe("Recommended next research step"),
         }),
-      ).default([]).describe("Areas where more information is needed"),
+      ).catch([]).describe("Areas where more information is needed"),
     });
 
     const corpus = data.sources
@@ -234,7 +236,7 @@ export const analyseAndSynthesize = createServerFn({ method: "POST" })
       )
       .join("\n\n");
 
-    const { object: out } = await generateObject({
+    const result = await generateObject({
       model,
       schema: Schema,
       experimental_repairText: repairStructuredJson,
@@ -253,6 +255,14 @@ export const analyseAndSynthesize = createServerFn({ method: "POST" })
         `Produce: executive_summary (3-5 sentences), analysis (themes, tensions, narrative), ` +
         `3-5 insights, 1-3 contradictions if present, and 2-4 open gaps with next steps.`,
     });
+    const out = (result?.object ?? {}) as Partial<{
+      executive_summary: string;
+      analysis: Analysis;
+      insights: Insight[];
+      contradictions: Contradiction[];
+      gaps: Gap[];
+    }>;
+    const analysis: Analysis = out.analysis ?? { themes: [], tensions: [], narrative: "" };
 
     // Clamp confidences and ensure citations array exists.
     const insights: Insight[] = (out.insights || []).map((i) => ({
@@ -262,8 +272,8 @@ export const analyseAndSynthesize = createServerFn({ method: "POST" })
     }));
 
     return {
-      executive_summary: out.executive_summary,
-      analysis: out.analysis,
+      executive_summary: out.executive_summary ?? "",
+      analysis,
       insights,
       contradictions: (out.contradictions || []) as Contradiction[],
       gaps: (out.gaps || []) as Gap[],
