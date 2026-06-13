@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { AGENT_ROLES, AVAILABLE_MODELS, type AgentRole } from "../lib/models";
+import { AGENT_ROLES, AVAILABLE_MODELS, type AgentRole } from "../../lib/models";
 
 export const Route = createFileRoute("/_authenticated/agents")({
   head: () => ({

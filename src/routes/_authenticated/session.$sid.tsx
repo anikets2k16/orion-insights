@@ -10,7 +10,7 @@ import {
   type Source,
   type SessionState,
   type Contradiction,
-} from "../lib/research";
+} from "../../lib/research";
 import {
   deepenResearch,
   findContradictions,
@@ -20,7 +20,7 @@ import {
   generateSources,
   identifyGaps,
   runGuardrail,
-} from "../lib/research.functions";
+} from "../../lib/research.functions";
 
 export const Route = createFileRoute("/_authenticated/session/$sid")({
   head: ({ params }) => ({
