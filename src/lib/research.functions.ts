@@ -2,7 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { generateObject } from "ai";
 import { z } from "zod";
 
-import { createLovableAiGatewayProvider } from "./ai-gateway.server";
 import type { Analysis, Contradiction, Gap, Insight, Persona, Source } from "./research";
 
 // ---------- Tavily ----------
@@ -96,6 +95,7 @@ export const retrieveAndScoreSources = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<{ sources: Source[] }> => {
     const lovableKey = process.env.LOVABLE_API_KEY;
     if (!lovableKey) throw new Error("LOVABLE_API_KEY is not configured");
+    const { createLovableAiGatewayProvider } = await import("./ai-gateway.server");
 
     const raw = await tavilySearch(data.topic, 10);
     if (raw.length === 0) return { sources: [] };
@@ -189,6 +189,7 @@ export const analyseAndSynthesize = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<SynthesisOutput> => {
     const lovableKey = process.env.LOVABLE_API_KEY;
     if (!lovableKey) throw new Error("LOVABLE_API_KEY is not configured");
+    const { createLovableAiGatewayProvider } = await import("./ai-gateway.server");
 
     const gateway = createLovableAiGatewayProvider(lovableKey);
     // Use the approved high-reasoning model for synthesis
