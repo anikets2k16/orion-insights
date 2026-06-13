@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}ORION — {{ session.topic }}{% endblock %}
+{% block body %}
+<h1 class="grad">{{ session.topic }}</h1>
+<div class="meta">Persona: {{ session.persona }} · {{ session.sources|length }} sources ·
+  {{ session.insights|length }} insights</div>
+
+<h2>Executive Summary</h2>
+<div class="card">{{ session.executive_summary }}</div>
+
+<h2>Synthesis</h2>
+<div class="card" style="white-space:pre-wrap">{{ session.synthesis }}</div>
+
+<h2>Insights</h2>
+{% for i in session.insights %}
+<div class="card">
+  <h3>{{ i.title }} <span class="tag">{{ i.type }}</span>
+    <span class="tag">conf {{ i.confidence }}</span></h3>
+  <p>{{ i.summary }}</p>
+  {% if i.evidence %}<p class="muted">Evidence: {{ i.evidence|join('; ') }}</p>{% endif %}
+</div>
+{% else %}<p class="muted">No insights generated.</p>{% endfor %}
+
+<h2>Sources <span class="muted">(selected)</span></h2>
+<table>
+  <tr><th>#</th><th>Title</th><th>Type</th><th>Confidence</th></tr>
+  {% for s in session.sources %}
+  <tr><td>{{ loop.index }}</td>
+    <td><a href="{{ s.url }}">{{ s.title or s.url }}</a></td>
+    <td>{{ s.source_type }}</td><td>{{ s.confidence }}</td></tr>
+  {% endfor %}
+</table>
+
+{% if session.selected_artifacts %}
+<h2>Artifacts</h2>
+<div>{% for a in session.selected_artifacts %}<span class="tag">{{ a }}</span>{% endfor %}</div>
+{% endif %}
+
+{% block persona_extra %}{% endblock %}
+{% endblock %}

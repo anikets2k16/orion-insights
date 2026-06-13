@@ -1,0 +1,26 @@
+{% extends "research_output.html" %}
+{# Product Manager persona report — adds opportunity/risk framing + PRD-ready criteria. #}
+{% block persona_extra %}
+<h2>Opportunities &amp; Bets</h2>
+<table>
+  <tr><th>Insight</th><th>Type</th><th>Confidence</th><th>Priority</th></tr>
+  {% for i in session.insights %}
+  <tr>
+    <td>{{ i.title }}</td>
+    <td>{{ i.type }}</td>
+    <td>{{ i.confidence }}</td>
+    <td>{% if i.confidence and i.confidence > 0.8 %}High{% elif i.confidence and i.confidence > 0.6 %}Medium{% else %}Low{% endif %}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+<h2>PRD-Ready Acceptance Criteria</h2>
+<div class="card">
+  {% for i in session.insights %}
+    {% if i.acceptance_criteria %}
+    <h3>{{ i.title }}</h3>
+    <ul>{% for ac in i.acceptance_criteria %}<li>{{ ac }}</li>{% endfor %}</ul>
+    {% endif %}
+  {% endfor %}
+</div>
+{% endblock %}

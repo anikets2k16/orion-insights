@@ -1,0 +1,46 @@
+# Per-agent-type autoscaling (FR-13). HPA on queue depth; KEDA below for scale-to-zero.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: orion-worker-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: orion-worker
+  minReplicas: 1
+  maxReplicas: 20
+  metrics:
+    - type: External
+      external:
+        metric:
+          name: celery_queue_length
+          selector:
+            matchLabels: {queue: research_tasks}
+        target:
+          type: AverageValue
+          averageValue: "5"   # scale up when queue > 5 tasks/pod
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 30
+      policies: [{type: Pods, value: 4, periodSeconds: 60}]
+    scaleDown:
+      stabilizationWindowSeconds: 300
+---
+# KEDA ScaledObject — scale-to-zero on idle (FR-13).
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: orion-worker-keda
+spec:
+  scaleTargetRef:
+    name: orion-worker
+  minReplicaCount: 0
+  maxReplicaCount: 20
+  cooldownPeriod: 300
+  triggers:
+    - type: redis
+      metadata:
+        address: redis:6379
+        listName: research_tasks
+        listLength: "5"

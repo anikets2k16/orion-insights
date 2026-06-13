@@ -1,0 +1,26 @@
+{% extends "research_output.html" %}
+{# Content Creator persona report — adds shareable angles + content calendar framing. #}
+{% block persona_extra %}
+<h2>Content Angles</h2>
+<div class="card">
+  <p class="muted">Hooks derived from the top insights — ready to adapt for posts, threads, or scripts.</p>
+  <ul>
+    {% for i in session.insights %}
+    <li><strong>{{ i.title }}</strong> — {{ i.summary }}
+      {% if i.confidence is defined %}<span class="tag">conf {{ i.confidence }}</span>{% endif %}</li>
+    {% endfor %}
+  </ul>
+</div>
+
+<h2>Suggested Content Calendar</h2>
+<table>
+  <tr><th>Slot</th><th>Insight</th><th>Format</th></tr>
+  {% for i in session.insights %}
+  <tr>
+    <td>Week {{ loop.index }}</td>
+    <td>{{ i.title }}</td>
+    <td>{{ 'Long-form' if i.type == 'hypothesis' else 'Short / social' }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}
