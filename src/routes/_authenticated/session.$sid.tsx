@@ -208,6 +208,66 @@ function SessionPage() {
         </section>
       )}
 
+      {session.analysis && (
+        <section className="orion-card">
+          <h2>Critical analysis</h2>
+          <p>{session.analysis.narrative}</p>
+          <h3 style={{ marginTop: 12 }}>Themes</h3>
+          <ul>{session.analysis.themes.map((t) => <li key={t}>{t}</li>)}</ul>
+          <h3>Tensions</h3>
+          <ul>{session.analysis.tensions.map((t) => <li key={t}>{t}</li>)}</ul>
+        </section>
+      )}
+
+      {session.insights && session.insights.length > 0 && (
+        <section className="orion-card">
+          <h2>Insights</h2>
+          {session.insights.map((i) => (
+            <div key={i.title} style={{ marginBottom: 12 }}>
+              <h3 style={{ margin: 0 }}>
+                {i.title}{" "}
+                <span className="orion-tag">conf {i.confidence.toFixed(2)}</span>
+              </h3>
+              <p style={{ margin: "4px 0" }}>{i.summary}</p>
+              <p className="orion-muted" style={{ margin: 0, fontSize: 13 }}>
+                <em>Implications:</em> {i.implications}
+                {i.citations && i.citations.length > 0 && ` [${i.citations.join(", ")}]`}
+              </p>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {session.contradictions && session.contradictions.length > 0 && (
+        <section className="orion-card">
+          <h2>Contradictions</h2>
+          {session.contradictions.map((c) => (
+            <div key={c.claim} style={{ marginBottom: 10 }}>
+              <strong>{c.claim}</strong>
+              <p style={{ margin: "4px 0" }}>{c.sides}</p>
+              <p className="orion-muted" style={{ margin: 0, fontSize: 13 }}>
+                [{c.citations.join(", ")}]
+              </p>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {session.gaps && session.gaps.length > 0 && (
+        <section className="orion-card">
+          <h2>Open questions &amp; gaps</h2>
+          {session.gaps.map((g) => (
+            <div key={g.question} style={{ marginBottom: 10 }}>
+              <strong>{g.question}</strong>
+              <p style={{ margin: "4px 0" }}>{g.why_it_matters}</p>
+              <p className="orion-muted" style={{ margin: 0, fontSize: 13 }}>
+                <em>Next step:</em> {g.suggested_next_step}
+              </p>
+            </div>
+          ))}
+        </section>
+      )}
+
       {session.reportHtml && (
         <section className="orion-card">
           <h2>Report</h2>
