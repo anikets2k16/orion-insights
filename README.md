@@ -1,7 +1,16 @@
 # ORION — Multi-Agent AI Deep Researcher
 
+[![CI](https://github.com/anikets2k16/orion-researcher/actions/workflows/ci.yml/badge.svg)](https://github.com/anikets2k16/orion-researcher/actions/workflows/ci.yml)
+![tests](https://img.shields.io/badge/tests-23%20passing-06ffa5)
+![determinism](https://img.shields.io/badge/NFR--1-deterministic-00d4ff)
+![python](https://img.shields.io/badge/python-3.11%2B-8b5cf6)
+![license](https://img.shields.io/badge/license-MIT-7c85a0)
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/anikets2k16/orion-researcher)
+
 Spec-driven, **deterministic** implementation of the ORION architecture (Hackathon 2026,
 Group 8). Real LLM calls (OpenAI/Anthropic) engineered for byte-identical reproducibility.
+Frontend (for Lovable) lives in [`orion-frontend`](https://github.com/anikets2k16/orion-frontend).
 
 Built from the source docs in the parent folder (`architecture-docs.html`,
 `usage-docs.html`, `bootstrap.sh`). Every component traces to a requirement in
