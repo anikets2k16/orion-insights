@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { generateText, Output } from "ai";
-import { z } from "zod";
+import { generateText } from "ai";
 import { createLovableAiGatewayProvider } from "./ai-gateway.server";
 
 const MODEL = "google/gemini-3-flash-preview";
@@ -22,6 +21,36 @@ function normalizeType(t: unknown): "academic" | "news" | "blog" | "report" {
   if (s.includes("news")) return "news";
   if (s.includes("report") || s.includes("white")) return "report";
   return "blog";
+}
+
+/**
+ * Robust JSON extraction. Gemini through openai-compatible doesn't support
+ * structured outputs reliably, so we ask for JSON and parse defensively.
+ */
+function parseJson<T = unknown>(raw: string, fallback: T): T {
+  if (!raw) return fallback;
+  let s = raw.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+  const first = s.search(/[\[{]/);
+  if (first === -1) return fallback;
+  const opener = s[first];
+  const closer = opener === "[" ? "]" : "}";
+  const last = s.lastIndexOf(closer);
+  if (last === -1 || last < first) return fallback;
+  s = s.slice(first, last + 1);
+  try {
+    return JSON.parse(s) as T;
+  } catch {
+    try {
+      const cleaned = s
+        .replace(/,\s*}/g, "}")
+        .replace(/,\s*\]/g, "]")
+        // eslint-disable-next-line no-control-regex
+        .replace(/[\x00-\x1F\x7F]/g, " ");
+      return JSON.parse(cleaned) as T;
+    } catch {
+      return fallback;
+    }
+  }
 }
 
 function inferType(url: string): "academic" | "news" | "blog" | "report" {
@@ -74,16 +103,6 @@ async function firecrawlSearch(query: string, limit = 8): Promise<FCResult[]> {
   return data.web ?? [];
 }
 
-const RankSchema = z.object({
-  ranked: z.array(
-    z.object({
-      url: z.string(),
-      confidence: z.number(),
-      rationale: z.string(),
-    }),
-  ),
-});
-
 export const generateSources = createServerFn({ method: "POST" })
   .inputValidator((d: { topic: string; persona: string; threshold: number }) => d)
   .handler(async ({ data }) => {
@@ -107,11 +126,10 @@ export const generateSources = createServerFn({ method: "POST" })
     });
     if (raw.length === 0) return [];
 
-    // Ask the Retriever agent to rank + rationalize.
-    const { experimental_output } = await generateText({
+    // Ask the Retriever agent to rank + rationalize (JSON via prompt; parsed defensively).
+    const { text } = await generateText({
       model: model(),
-      experimental_output: Output.object({ schema: RankSchema }),
-      system: `You are the Contextual Retriever agent. ${persona} Rank these real web results by relevance and credibility for the topic. Return one entry per url, confidence in [0,1], and a one-sentence rationale.`,
+      system: `You are the Contextual Retriever agent. ${persona} Rank these real web results by relevance and credibility. Reply with ONLY a JSON object, no prose, of shape:\n{"ranked":[{"url":"...","confidence":0.0,"rationale":"..."}]}\nOne entry per url. confidence is a number in [0,1].`,
       prompt:
         `Topic: ${data.topic}\n\nResults:\n` +
         raw
@@ -121,8 +139,12 @@ export const generateSources = createServerFn({ method: "POST" })
           )
           .join("\n"),
     });
+    const parsed = parseJson<{ ranked?: { url: string; confidence: number; rationale: string }[] }>(
+      text,
+      { ranked: [] },
+    );
     const ranks = new Map<string, { confidence: number; rationale: string }>();
-    for (const r of experimental_output?.ranked ?? []) {
+    for (const r of parsed.ranked ?? []) {
       ranks.set(String(r.url), {
         confidence: clamp01(Number(r.confidence)),
         rationale: String(r.rationale ?? ""),
@@ -175,16 +197,6 @@ export const generateAnalysis = createServerFn({ method: "POST" })
 
 // ---------- Contradictions agent ----------
 
-const ContradictionsSchema = z.object({
-  contradictions: z.array(
-    z.object({
-      claim: z.string(),
-      sides: z.string(),
-      citations: z.array(z.number()),
-    }),
-  ),
-});
-
 export const findContradictions = createServerFn({ method: "POST" })
   .inputValidator(
     (d: {
@@ -200,13 +212,15 @@ export const findContradictions = createServerFn({ method: "POST" })
       )
       .join("\n");
     try {
-      const { experimental_output } = await generateText({
+      const { text } = await generateText({
         model: model(),
-        experimental_output: Output.object({ schema: ContradictionsSchema }),
-        system: `You are the Contradiction Detector agent. Read the source snippets and surface 0-4 explicit disagreements, tension points, or contradicting claims across them. For each, provide the contested claim, both sides in one sentence, and the citation numbers involved. If sources broadly agree, return an empty list.`,
+        system: `You are the Contradiction Detector agent. Read the source snippets and surface 0-4 explicit disagreements across them. Reply with ONLY a JSON object, no prose, of shape:\n{"contradictions":[{"claim":"...","sides":"...","citations":[1,2]}]}\nReturn {"contradictions":[]} if sources broadly agree.`,
         prompt: `Topic: ${data.topic}\n\nSources:\n${list}`,
       });
-      return (experimental_output?.contradictions ?? []).map((c) => ({
+      const parsed = parseJson<{
+        contradictions?: { claim: string; sides: string; citations: number[] }[];
+      }>(text, { contradictions: [] });
+      return (parsed.contradictions ?? []).map((c) => ({
         claim: String(c.claim),
         sides: String(c.sides),
         citations: (c.citations ?? []).map((n) => Number(n)).filter(Number.isFinite),
@@ -215,19 +229,6 @@ export const findContradictions = createServerFn({ method: "POST" })
       return [];
     }
   });
-
-const InsightsSchema = z.object({
-  insights: z
-    .array(
-      z.object({
-        title: z.string(),
-        summary: z.string(),
-        confidence: z.number(),
-        implications: z.string(),
-        citations: z.array(z.number()),
-      }),
-    ),
-});
 
 export const generateInsights = createServerFn({ method: "POST" })
   .inputValidator(
@@ -243,15 +244,23 @@ export const generateInsights = createServerFn({ method: "POST" })
     const contraText = (data.contradictions ?? [])
       .map((c) => `- ${c.claim} (sides: ${c.sides}) [${c.citations.join(",")}]`)
       .join("\n");
-    const { experimental_output } = await generateText({
+    const { text } = await generateText({
       model: model(),
-      experimental_output: Output.object({ schema: InsightsSchema }),
-      system: `You are the Insight Generator agent. ${persona} Distill 3-5 sharp, non-obvious insights grounded in the analysis. Each insight must include the citation numbers (from the analysis's [n] markers) that support it. confidence is in [0,1].`,
+      system: `You are the Insight Generator agent. ${persona} Distill 3-5 sharp, non-obvious insights grounded in the analysis. Reply with ONLY a JSON object, no prose, of shape:\n{"insights":[{"title":"...","summary":"...","implications":"...","confidence":0.0,"citations":[1,2]}]}\nconfidence is in [0,1]. citations are the [n] numbers from the analysis.`,
       prompt: `Topic: ${data.topic}\n\nAnalysis:\n${data.analysis}${
         contraText ? `\n\nKnown contradictions:\n${contraText}` : ""
       }`,
     });
-    return (experimental_output?.insights ?? []).map((i) => ({
+    const parsed = parseJson<{
+      insights?: {
+        title: string;
+        summary: string;
+        implications: string;
+        confidence: number;
+        citations: number[];
+      }[];
+    }>(text, { insights: [] });
+    return (parsed.insights ?? []).map((i) => ({
       title: String(i.title),
       summary: String(i.summary),
       implications: String(i.implications),
@@ -261,10 +270,6 @@ export const generateInsights = createServerFn({ method: "POST" })
   });
 
 // ---------- Multi-hop: gap detection + follow-up retrieval ----------
-
-const GapsSchema = z.object({
-  queries: z.array(z.string()),
-});
 
 export const identifyGaps = createServerFn({ method: "POST" })
   .inputValidator(
@@ -276,15 +281,15 @@ export const identifyGaps = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     try {
-      const { experimental_output } = await generateText({
+      const { text } = await generateText({
         model: model(),
-        experimental_output: Output.object({ schema: GapsSchema }),
-        system: `You are the Gap Analyst agent. Identify 0-3 evidence gaps or weakly supported claims in this research, and propose specific follow-up web search queries that would strengthen or refute them. Return [] if confident the research is complete.`,
+        system: `You are the Gap Analyst agent. Identify 0-3 evidence gaps or weakly supported claims, and propose specific follow-up web search queries. Reply with ONLY a JSON object, no prose:\n{"queries":["...","..."]}\nReturn {"queries":[]} if the research is solid.`,
         prompt: `Topic: ${data.topic}\n\nAnalysis:\n${data.analysis}\n\nInsights:\n${data.insights
           .map((i) => `- ${i.title} (${i.confidence.toFixed(2)}): ${i.summary}`)
           .join("\n")}`,
       });
-      return (experimental_output?.queries ?? []).map(String).filter(Boolean).slice(0, 3);
+      const parsed = parseJson<{ queries?: string[] }>(text, { queries: [] });
+      return (parsed.queries ?? []).map(String).filter(Boolean).slice(0, 3);
     } catch {
       return [];
     }
@@ -329,27 +334,21 @@ export const deepenResearch = createServerFn({ method: "POST" })
     return out;
   });
 
-const GuardrailSchema = z.object({
-  pass: z.boolean(),
-  reason: z.string(),
-});
-
 export const runGuardrail = createServerFn({ method: "POST" })
   .inputValidator(
     (d: { insights: { title: string; summary: string }[] }) => d,
   )
   .handler(async ({ data }) => {
     try {
-      const { experimental_output } = await generateText({
+      const { text } = await generateText({
         model: model(),
-        experimental_output: Output.object({ schema: GuardrailSchema }),
-        system:
-          "You are the Guardrail agent. Check the insights for unsupported claims, defamation, PII, or unsafe content. Return pass=true unless there is a real concern.",
+        system: `You are the Guardrail agent. Check insights for unsupported claims, defamation, PII, or unsafe content. Reply with ONLY a JSON object, no prose:\n{"pass":true,"reason":"..."}\nReturn pass=true unless there is a real concern.`,
         prompt: data.insights.map((i) => `- ${i.title}: ${i.summary}`).join("\n"),
       });
+      const parsed = parseJson<{ pass?: boolean; reason?: string }>(text, { pass: true, reason: "ok" });
       return {
-        pass: Boolean(experimental_output?.pass ?? true),
-        reason: String(experimental_output?.reason ?? "ok"),
+        pass: Boolean(parsed.pass ?? true),
+        reason: String(parsed.reason ?? "ok"),
       };
     } catch {
       return { pass: true, reason: "guardrail skipped" };
