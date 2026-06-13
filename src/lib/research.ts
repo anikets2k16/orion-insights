@@ -9,7 +9,10 @@ export const PIPELINE = [
   "retrieve",
   "score",
   "analyse",
+  "contradict",
   "insight",
+  "gaps",
+  "deepen",
   "guardrail",
   "report",
 ] as const;
@@ -23,6 +26,9 @@ export interface Source {
   source_type: "academic" | "news" | "blog" | "report";
   confidence: number;
   rationale?: string;
+  snippet?: string;
+  citation?: number;
+  hop?: number;
 }
 
 export interface Insight {
@@ -30,6 +36,13 @@ export interface Insight {
   summary: string;
   implications: string;
   confidence: number;
+  citations?: number[];
+}
+
+export interface Contradiction {
+  claim: string;
+  sides: string;
+  citations: number[];
 }
 
 export interface SessionState {
@@ -42,7 +55,10 @@ export interface SessionState {
   sources?: Source[];
   curated?: string[];
   analysis?: string;
+  contradictions?: Contradiction[];
   insights?: Insight[];
+  gaps?: string[];
+  followups?: Source[];
   guardrail?: { pass: boolean; reason: string };
   report?: string;
   error?: string;
