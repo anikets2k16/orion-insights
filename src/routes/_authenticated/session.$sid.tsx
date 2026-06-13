@@ -22,7 +22,7 @@ import {
   runGuardrail,
 } from "../lib/research.functions";
 
-export const Route = createFileRoute("/session/$sid")({
+export const Route = createFileRoute("/_authenticated/session/$sid")({
   head: ({ params }) => ({
     meta: [
       { title: `Session ${params.sid} — ORION Insights` },
