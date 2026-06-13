@@ -13,6 +13,7 @@ import { supabase as _supabase } from "@/lib/supabase-browser";
 import {
   continueAfterCuration,
   getSession,
+  normalizeSessionOutputs,
   PERSONA_LABELS,
   PIPELINE,
   resumeInFlight,
@@ -115,6 +116,10 @@ function SessionPage() {
   }
 
   const progress = useMemo(() => session?.progress ?? 0, [session]);
+  const derived = useMemo(
+    () => (session ? normalizeSessionOutputs(session) : null),
+    [session],
+  );
   void PIPELINE;
 
   if (!session && savedHtml) {
@@ -239,30 +244,30 @@ function SessionPage() {
       )}
 
       <AnimatePresence>
-        {session.analysis && (
+        {derived && (
           <SectionCard key="analysis" icon={<Brain size={16} />} title="Critical analysis">
-            <p style={{ marginTop: 0, lineHeight: 1.65 }}>{session.analysis.narrative}</p>
+            <p style={{ marginTop: 0, lineHeight: 1.65 }}>{derived.analysis.narrative}</p>
             <div style={{ display: "grid", gap: 14, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", marginTop: 12 }}>
               <div>
                 <div className="orion-muted" style={{ marginBottom: 6, fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase" }}>Themes</div>
                 <div className="orion-cloud">
-                  {session.analysis.themes.map((t) => <span key={t} className="orion-chip blue">{t}</span>)}
+                  {derived.analysis.themes.map((t) => <span key={t} className="orion-chip blue">{t}</span>)}
                 </div>
               </div>
               <div>
                 <div className="orion-muted" style={{ marginBottom: 6, fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase" }}>Tensions</div>
                 <div className="orion-cloud">
-                  {session.analysis.tensions.map((t) => <span key={t} className="orion-chip amber">{t}</span>)}
+                  {derived.analysis.tensions.map((t) => <span key={t} className="orion-chip amber">{t}</span>)}
                 </div>
               </div>
             </div>
           </SectionCard>
         )}
 
-        {session.insights && session.insights.length > 0 && (
+        {derived && derived.insights.length > 0 && (
           <SectionCard key="insights" icon={<Lightbulb size={16} />} title="Insights" delay={0.05}>
             <div className="orion-insight-grid">
-              {session.insights.map((i, idx) => (
+              {derived.insights.map((i, idx) => (
                 <motion.div
                   className="orion-insight-card"
                   key={i.title}
@@ -284,9 +289,9 @@ function SessionPage() {
           </SectionCard>
         )}
 
-        {session.contradictions && session.contradictions.length > 0 && (
+        {derived && derived.contradictions.length > 0 && (
           <SectionCard key="contradictions" icon={<Scale size={16} />} title="Contradictions" delay={0.1}>
-            {session.contradictions.map((c) => {
+            {derived.contradictions.map((c) => {
               const [a, b] = (c.sides ?? "").split(/\s+(?:vs\.?|versus|\|)\s+/i);
               return (
                 <div key={c.claim} className="orion-contradiction">
@@ -309,9 +314,9 @@ function SessionPage() {
           </SectionCard>
         )}
 
-        {session.gaps && session.gaps.length > 0 && (
+        {derived && derived.gaps.length > 0 && (
           <SectionCard key="gaps" icon={<HelpCircle size={16} />} title="Open questions & gaps" delay={0.15}>
-            {session.gaps.map((g, i) => (
+            {derived.gaps.map((g, i) => (
               <div key={g.question} className="orion-gap">
                 <div className="num">{i + 1}</div>
                 <div>
@@ -321,6 +326,36 @@ function SessionPage() {
                 </div>
               </div>
             ))}
+          </SectionCard>
+        )}
+
+        {derived && (derived.gaps.length > 0 || derived.contradictions.length > 0) && (
+          <SectionCard key="deepen" icon={<Sparkles size={16} />} title="Deepen" delay={0.18}>
+            <div className="orion-meta-grid">
+              <div className="orion-meta-card">
+                <div className="label">Best next evidence move</div>
+                <p>{derived.gaps[0]?.suggested_next_step ?? "Expand the source set with tighter primary evidence."}</p>
+              </div>
+              <div className="orion-meta-card">
+                <div className="label">Where to press harder</div>
+                <p>{derived.contradictions[0]?.claim ?? derived.analysis.tensions[0] ?? "Pressure-test the weakest-supported claims against stronger evidence."}</p>
+              </div>
+            </div>
+          </SectionCard>
+        )}
+
+        {derived && (
+          <SectionCard key="guardrails" icon={<Sparkles size={16} />} title="Guardrails" delay={0.19}>
+            <div className="orion-meta-grid">
+              <div className="orion-meta-card">
+                <div className="label">Evidence boundary</div>
+                <p>Claims should stay anchored to the curated sources and their cited confidence range.</p>
+              </div>
+              <div className="orion-meta-card">
+                <div className="label">Weak-claim watchlist</div>
+                <p>{derived.analysis.tensions[0] ?? "Watch for overstated certainty where the evidence base is still mixed."}</p>
+              </div>
+            </div>
           </SectionCard>
         )}
 
