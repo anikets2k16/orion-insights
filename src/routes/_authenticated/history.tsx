@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { supabase as _supabase } from "@/integrations/supabase/client";
+import { supabase as _supabase } from "@/lib/supabase-browser";
 
 const supabase = _supabase as unknown as {
   from: (table: string) => any;

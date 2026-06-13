@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase as _supabase } from "@/integrations/supabase/client";
+import { supabase as _supabase } from "@/lib/supabase-browser";
 
 // Auto-generated types don't yet include our new tables; cast to any for the
 // app-specific tables. Server-side RLS still enforces row ownership.

@@ -13,8 +13,19 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ParticleField } from "../components/ParticleField";
 import { Nav } from "../components/Nav";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-browser";
 import { fetchProfile, applyTheme } from "@/lib/profile";
+
+const publicBackendConfig = {
+  SUPABASE_URL:
+    import.meta.env.VITE_SUPABASE_URL ||
+    process.env.SUPABASE_URL ||
+    "https://tobdkhzivbxtkezluyzd.supabase.co",
+  SUPABASE_PUBLISHABLE_KEY:
+    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.SUPABASE_PUBLISHABLE_KEY ||
+    "sb_publishable_GTr5QaQD-j95yxqI6cNHHQ_XT2Y2lKt",
+};
 
 function NotFoundComponent() {
   return (
@@ -112,6 +123,11 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.__ORION_PUBLIC_ENV__ = ${JSON.stringify(publicBackendConfig)};`,
+          }}
+        />
       </head>
       <body>
         {children}
