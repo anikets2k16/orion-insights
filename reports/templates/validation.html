@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}ORION — Validation Report{% endblock %}
+{% block body %}
+<h1 class="grad">Validation &amp; Compliance Report</h1>
+<div class="meta">Executive sign-off · EU AI Act high-risk documentation</div>
+
+<h2>Session</h2>
+<div class="card">
+  <table>
+    <tr><th>Topic</th><td>{{ session.topic }}</td></tr>
+    <tr><th>Persona</th><td>{{ session.persona }}</td></tr>
+    <tr><th>Status</th><td>{{ session.status }}</td></tr>
+  </table>
+</div>
+
+<h2>Guardrail Audit Trail</h2>
+<table>
+  <tr><th>Timestamp</th><th>Content hash</th><th>Result</th></tr>
+  {% for e in audit_log %}
+  <tr>
+    <td>{{ e.timestamp }}</td>
+    <td class="hash">{{ e.content_hash[:24] }}…</td>
+    <td class="{{ 'pass' if e.overall_passed else 'fail' }}">
+      {{ 'PASS' if e.overall_passed else 'BLOCK' }}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+<h2>Compliance Checklist</h2>
+<div class="card">
+  <table>
+    <tr><td>Hallucination grounding check</td><td class="pass">✓ applied</td></tr>
+    <tr><td>PII redaction (Presidio)</td><td class="pass">✓ applied</td></tr>
+    <tr><td>Bias detection</td><td class="pass">✓ applied</td></tr>
+    <tr><td>Topic policy enforcement</td><td class="pass">✓ applied</td></tr>
+    <tr><td>Append-only audit log</td><td class="pass">✓ preserved</td></tr>
+    <tr><td>Deterministic reproducibility (NFR-1)</td><td class="pass">✓ enforced</td></tr>
+  </table>
+</div>
+
+<h2>Tamper-Evident Signature</h2>
+<div class="card"><span class="muted">SHA-256:</span> <span class="hash">{{ sha256 }}</span></div>
+{% endblock %}

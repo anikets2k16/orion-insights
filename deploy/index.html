@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ORION — Deployment Console</title>
+<style>
+  :root{--bg:#060612;--bg2:#0d0d22;--card:rgba(255,255,255,.04);--border:rgba(255,255,255,.08);
+    --blue:#00d4ff;--purple:#8b5cf6;--cyan:#06ffa5;--amber:#fbbf24;--red:#ff4d6d;
+    --text:#e2e8f0;--muted:#7c85a0;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+  #bg{position:fixed;inset:0;z-index:0;opacity:.3;pointer-events:none}
+  .wrap{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:32px 24px 80px}
+  header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:8px}
+  .brand{font-size:30px;font-weight:900;letter-spacing:.05em;
+    background:linear-gradient(135deg,var(--blue),var(--purple),var(--cyan));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .sub{font-size:12px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+  .grid{display:grid;grid-template-columns:1.15fr .85fr;gap:20px;margin-top:24px}
+  @media(max-width:900px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:18px}
+  .card h2{font-size:15px;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+  .card .desc{font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6}
+  .step-num{width:24px;height:24px;border-radius:50%;background:rgba(0,212,255,.12);color:var(--blue);
+    border:1px solid rgba(0,212,255,.3);display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+  button{background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;border:none;border-radius:8px;
+    padding:9px 16px;font-weight:600;font-size:13px;cursor:pointer;transition:transform .15s, opacity .15s;margin:4px 6px 4px 0}
+  button:hover{transform:translateY(-1px)}
+  button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+  button.ghost{background:rgba(255,255,255,.06);border:1px solid var(--border)}
+  button.danger{background:linear-gradient(135deg,var(--red),#b03052)}
+  .prereqs{display:flex;flex-direction:column;gap:8px}
+  .pr{display:flex;align-items:center;gap:10px;font-size:13px}
+  .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  .ok{background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
+  .bad{background:var(--red);box-shadow:0 0 8px var(--red)}
+  .unknown{background:var(--muted)}
+  .pr .hint{color:var(--muted);font-size:11px;margin-left:auto}
+  label{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin:10px 0 4px}
+  input{width:100%;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:8px;padding:9px 11px;color:var(--text);font-size:13px;font-family:monospace}
+  .req{color:var(--amber)}
+  .log{background:#05050f;border:1px solid var(--border);border-radius:12px;padding:14px;height:340px;overflow-y:auto;
+    font-family:'Fira Code','Cascadia Code',monospace;font-size:12px;line-height:1.6;white-space:pre-wrap;color:#c9d1d9}
+  .log .err{color:var(--red)}.log .done{color:var(--cyan)}.log .cmd{color:var(--amber)}
+  .pill{font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(6,255,165,.1);color:var(--cyan);border:1px solid rgba(6,255,165,.2);margin-left:8px}
+  a{color:var(--cyan)}
+  .links{margin-top:10px;font-size:12px;display:flex;gap:16px;flex-wrap:wrap}
+  .statusbar{font-size:11px;color:var(--muted);margin-top:6px;min-height:16px}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="brand">ORION</div>
+      <div class="sub">Deployment Console · v2.0</div>
+    </div>
+    <div class="sub" id="root-path"></div>
+  </header>
+
+  <div class="grid">
+    <!-- LEFT: actions -->
+    <div>
+      <div class="card">
+        <h2><span class="step-num">1</span> Prerequisites</h2>
+        <div class="desc">Tools needed for local run + GitHub push. Refresh after installing anything.</div>
+        <div class="prereqs" id="prereqs"><div class="pr"><span class="dot unknown"></span>checking…</div></div>
+        <button class="ghost" onclick="loadPrereqs()">↻ Re-check</button>
+      </div>
+
+      <div class="card">
+        <h2><span class="step-num">2</span> Environment (.env)</h2>
+        <div class="desc">Real LLM keys are required to run live (NFR-2). <span class="req">Amber = required.</span>
+          Saved to <code>.env</code> (gitignored — never committed).</div>
+        <div id="envform"></div>
+        <button onclick="saveEnv()">💾 Save .env</button>
+        <div class="statusbar" id="env-status"></div>
+      </div>
+
+      <div class="card">
+        <h2><span class="step-num">3</span> Install</h2>
+        <div class="desc">Backend = Python venv + deps (needs Python 3.11). Frontend = npm install (needs Node 20).</div>
+        <button onclick="run('install_backend')">⬇ Install backend</button>
+        <button onclick="run('install_frontend')">⬇ Install frontend</button>
+      </div>
+
+      <div class="card">
+        <h2><span class="step-num">4</span> Verify <span class="pill">deterministic</span></h2>
+        <div class="desc">Run the test suite, the NFR-1 determinism gate, and generate the SDLC phase reports.</div>
+        <button onclick="run('test')">🧪 Run tests</button>
+        <button onclick="run('determinism')">🎯 Determinism gate</button>
+        <button onclick="run('reports')">📊 Phase reports</button>
+      </div>
+
+      <div class="card">
+        <h2><span class="step-num">5</span> Run</h2>
+        <div class="desc">Start the API + frontend (dev) or the full Docker stack. Servers run in the background.</div>
+        <button onclick="run('start_backend')">▶ Start API</button>
+        <button onclick="run('start_frontend')">▶ Start frontend</button>
+        <button class="ghost" onclick="run('compose_up')">🐳 docker-compose up</button>
+        <div class="links">
+          <a href="http://localhost:8000/api/docs" target="_blank">API docs ↗</a>
+          <a href="http://localhost:3000" target="_blank">App ↗</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="step-num">6</span> Publish to GitHub</h2>
+        <div class="desc">Commit locally, then create the private repo <code>orion-researcher</code> and push.
+          Needs <code>gh auth login</code> first (one time).</div>
+        <button class="ghost" onclick="run('git_commit')">① Commit locally</button>
+        <button onclick="run('github_push')">② Create repo &amp; push</button>
+        <div class="statusbar" id="gh-status"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: live log -->
+    <div>
+      <div class="card" style="position:sticky;top:20px">
+        <h2>⚡ Live output <span id="busy" class="pill" style="display:none">running…</span></h2>
+        <div class="desc">Streamed from the local console server.</div>
+        <div class="log" id="log"><span style="color:var(--muted)">Output will appear here…</span></div>
+        <button class="ghost" onclick="document.getElementById('log').innerHTML=''">Clear</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const logEl = document.getElementById('log');
+let es = null, firstLog = true;
+
+function append(text, cls){
+  if(firstLog){ logEl.innerHTML=''; firstLog=false; }
+  const span=document.createElement('span');
+  if(cls) span.className=cls;
+  span.textContent=text+"\n";
+  logEl.appendChild(span);
+  logEl.scrollTop=logEl.scrollHeight;
+}
+function setBusy(b){ document.getElementById('busy').style.display=b?'inline-block':'none'; }
+
+function run(action){
+  if(es){ es.close(); }
+  append('$ '+action, 'cmd'); setBusy(true);
+  es = new EventSource('/stream?action='+encodeURIComponent(action));
+  es.onmessage = (e)=>{ const m=JSON.parse(e.data); append(m.line, m.kind); };
+  es.addEventListener('done', (e)=>{
+    const m=JSON.parse(e.data);
+    append('— '+(m.exit===0?'done ✓':'exit '+m.exit), m.exit===0?'done':'err');
+    if(m.url) append('open: '+m.url, 'done');
+    if(action==='github_push' && m.exit===0) document.getElementById('gh-status').textContent='Pushed ✓';
+    setBusy(false); es.close(); es=null;
+  });
+  es.onerror = ()=>{ setBusy(false); if(es){es.close();es=null;} };
+}
+
+async function loadPrereqs(){
+  const el=document.getElementById('prereqs');
+  el.innerHTML='<div class="pr"><span class="dot unknown"></span>checking…</div>';
+  const p=await (await fetch('/api/prereqs')).json();
+  const rows=[
+    ['python', p.python, p.python_ok?'3.11+ ✓':'need 3.11+'],
+    ['node', p.node, 'Node 20 for frontend'],
+    ['docker', p.docker, 'optional — container path'],
+    ['git', p.git, 'for GitHub push'],
+    ['gh (auth)', p.gh_auth, p.gh?'run: gh auth login':'install gh'],
+  ];
+  el.innerHTML=rows.map(([name,ok,hint])=>
+    `<div class="pr"><span class="dot ${ok?'ok':'bad'}"></span>${name}<span class="hint">${ok?'available':hint}</span></div>`).join('');
+}
+
+async function loadEnv(){
+  const data=await (await fetch('/api/env')).json();
+  const required=['OPENAI_API_KEY','ANTHROPIC_API_KEY','TAVILY_API_KEY','JWT_SECRET'];
+  const form=document.getElementById('envform');
+  form.innerHTML=Object.entries(data.values).map(([k,v])=>
+    `<label>${k}${required.includes(k)?' <span class="req">*</span>':''}</label>
+     <input data-k="${k}" value="${(v||'').replace(/"/g,'&quot;')}" placeholder="${data.placeholders[k]||''}"/>`).join('');
+}
+async function saveEnv(){
+  const inputs=document.querySelectorAll('#envform input');
+  const values={}; inputs.forEach(i=>values[i.dataset.k]=i.value);
+  const r=await fetch('/api/env',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({values})});
+  document.getElementById('env-status').textContent=(await r.json()).ok?'Saved to .env ✓':'Save failed';
+}
+
+// particles
+const c=document.getElementById('bg'),x=c.getContext('2d');let W,H,pts=[];
+function rs(){W=c.width=innerWidth;H=c.height=innerHeight;}rs();onresize=rs;
+for(let i=0;i<70;i++)pts.push({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,c:['#00d4ff','#8b5cf6','#06ffa5'][i%3]});
+(function f(){x.clearRect(0,0,W,H);pts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>W)p.vx*=-1;if(p.y<0||p.y>H)p.vy*=-1;x.beginPath();x.arc(p.x,p.y,1.6,0,7);x.fillStyle=p.c;x.fill();});
+for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.hypot(dx,dy);if(d<110){x.beginPath();x.moveTo(pts[i].x,pts[i].y);x.lineTo(pts[j].x,pts[j].y);x.strokeStyle='rgba(0,212,255,'+.12*(1-d/110)+')';x.stroke();}}requestAnimationFrame(f);})();
+
+document.getElementById('root-path').textContent='';
+loadPrereqs(); loadEnv();
+</script>
+</body>
+</html>

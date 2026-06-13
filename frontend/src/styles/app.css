@@ -1,0 +1,38 @@
+:root {
+  --bg: #060612; --card: rgba(255, 255, 255, 0.04); --border: rgba(255, 255, 255, 0.08);
+  --blue: #00d4ff; --purple: #8b5cf6; --cyan: #06ffa5; --amber: #fbbf24; --red: #ff4d6d;
+  --text: #e2e8f0; --muted: #7c85a0;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: "Segoe UI", system-ui, sans-serif; }
+.particle-field { position: fixed; inset: 0; z-index: 0; opacity: 0.4; pointer-events: none; }
+.shell { position: relative; z-index: 1; max-width: 1000px; margin: 0 auto; padding: 32px 24px 80px; }
+.brand { font-size: 26px; font-weight: 900; letter-spacing: 0.05em; }
+.grad { background: linear-gradient(135deg, var(--blue), var(--purple), var(--cyan));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.nav { display: flex; gap: 16px; align-items: center; margin: 16px 0 28px; }
+.nav button { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; }
+.nav button.active, .nav button:hover { color: var(--blue); }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin: 14px 0; }
+h1 { font-size: 30px; font-weight: 800; margin-bottom: 6px; }
+h2 { font-size: 18px; color: var(--blue); margin: 18px 0 10px; }
+label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; text-transform: uppercase; letter-spacing: 0.08em; }
+input, select, textarea {
+  width: 100%; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 12px; color: var(--text); font-size: 14px;
+}
+button.primary {
+  background: linear-gradient(135deg, var(--blue), var(--purple)); color: #fff; border: none;
+  border-radius: 8px; padding: 11px 22px; font-weight: 700; cursor: pointer; margin-top: 16px;
+}
+button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.tag { display: inline-block; font-size: 11px; padding: 3px 10px; border-radius: 20px; margin: 2px;
+  background: rgba(0, 212, 255, 0.1); color: var(--blue); border: 1px solid rgba(0, 212, 255, 0.2); cursor: pointer; }
+.tag.sel { background: rgba(6, 255, 165, 0.15); color: var(--cyan); border-color: rgba(6, 255, 165, 0.3); }
+.progress { height: 6px; background: rgba(255, 255, 255, 0.06); border-radius: 3px; overflow: hidden; margin: 12px 0; }
+.progress > div { height: 100%; background: linear-gradient(90deg, var(--blue), var(--cyan)); transition: width 0.4s; }
+.muted { color: var(--muted); font-size: 13px; }
+.src { display: flex; gap: 12px; align-items: center; padding: 10px; border: 1px solid var(--border); border-radius: 10px; margin: 8px 0; }
+.src .score { font-weight: 700; color: var(--cyan); min-width: 48px; }
+a { color: var(--cyan); }
+.error { color: var(--red); font-size: 13px; margin-top: 8px; }

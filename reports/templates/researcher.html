@@ -1,0 +1,26 @@
+{% extends "research_output.html" %}
+{# Researcher persona report — adds hypothesis register + evidence chains. #}
+{% block persona_extra %}
+<h2>Hypothesis Register</h2>
+<table>
+  <tr><th>#</th><th>Hypothesis</th><th>Confidence</th><th>Next validation</th></tr>
+  {% for i in session.insights if i.type == 'hypothesis' %}
+  <tr>
+    <td>H{{ loop.index }}</td>
+    <td>{{ i.title }} — {{ i.summary }}</td>
+    <td>{{ i.confidence }}</td>
+    <td>{{ i.acceptance_criteria|join('; ') if i.acceptance_criteria else '—' }}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="4" class="muted">No explicit hypotheses surfaced.</td></tr>
+  {% endfor %}
+</table>
+
+<h2>Evidence Chains</h2>
+<div class="card">
+  {% for i in session.insights %}
+  <h3>{{ i.title }}</h3>
+  <ul>{% for e in i.evidence %}<li>{{ e }}</li>{% else %}<li class="muted">No evidence listed.</li>{% endfor %}</ul>
+  {% endfor %}
+</div>
+{% endblock %}

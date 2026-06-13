@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.cache/
+reports/phases/*
+!reports/phases/.gitkeep
+node_modules/
+frontend/dist/
+.pytest_cache/
+.DS_Store
+deploy/logs/
+playwright-report/
+test-results/

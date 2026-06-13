@@ -1,0 +1,47 @@
+name: ORION CI
+on:
+  push: {branches: [main, develop]}
+  pull_request: {branches: [main]}
+
+jobs:
+  test:
+    name: Tests + determinism gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - name: Install
+        run: pip install pytest pytest-asyncio pytest-html pydantic pydantic-settings jinja2 beautifulsoup4 lxml aiohttp
+      - name: Unit + integration tests (offline, deterministic)
+        env:
+          ORION_LLM_CACHE_MODE: read_write
+        run: pytest --html=reports/phases/test_report.html --self-contained-html -q
+      - name: Determinism gate (NFR-1)
+        run: python scripts/verify_determinism.py
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with: {name: test-report, path: reports/phases/test_report.html}
+
+  frontend-e2e:
+    name: Frontend Playwright smoke
+    runs-on: ubuntu-latest
+    defaults:
+      run: {working-directory: frontend}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: "20"}
+      - run: npm install
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+
+  build:
+    name: Build image
+    needs: [test, frontend-e2e]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t orion-api:${{ github.sha }} .

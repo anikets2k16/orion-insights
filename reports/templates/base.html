@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>{% block title %}ORION Report{% endblock %}</title>
+<style>
+  :root{--bg:#060612;--card:rgba(255,255,255,.04);--border:rgba(255,255,255,.08);
+    --blue:#00d4ff;--purple:#8b5cf6;--cyan:#06ffa5;--amber:#fbbf24;--red:#ff4d6d;
+    --text:#e2e8f0;--muted:#7c85a0;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;
+    line-height:1.6;padding:40px;max-width:960px;margin:0 auto}
+  h1{font-size:32px;font-weight:900;margin-bottom:4px}
+  .grad{background:linear-gradient(135deg,var(--blue),var(--purple),var(--cyan));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  h2{font-size:20px;margin:28px 0 12px;color:var(--blue);border-bottom:1px solid var(--border);padding-bottom:6px}
+  h3{font-size:15px;margin:16px 0 6px;color:var(--purple)}
+  .meta{font-size:12px;color:var(--muted);margin-bottom:24px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin:12px 0}
+  .tag{display:inline-block;font-size:11px;padding:2px 10px;border-radius:20px;
+    background:rgba(0,212,255,.1);color:var(--blue);border:1px solid rgba(0,212,255,.2);margin:2px}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin:12px 0}
+  th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--border);vertical-align:top}
+  th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+  a{color:var(--cyan);text-decoration:none}
+  .pass{color:var(--cyan);font-weight:700}.fail{color:var(--red);font-weight:700}
+  .hash{font-family:monospace;font-size:11px;color:var(--muted);word-break:break-all}
+  .muted{color:var(--muted);font-size:12px}
+  footer{margin-top:40px;padding-top:20px;border-top:1px solid var(--border);
+    font-size:11px;color:var(--muted);display:flex;justify-content:space-between}
+</style>
+</head>
+<body>
+{% block body %}{% endblock %}
+<footer>
+  <span><strong class="grad">ORION</strong> · Multi-Agent AI Deep Researcher</span>
+  <span>Generated {{ generated_at }}{% if content_hash %} · {{ content_hash }}{% endif %}</span>
+</footer>
+</body>
+</html>
