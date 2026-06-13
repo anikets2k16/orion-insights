@@ -524,9 +524,10 @@ async function runRetrieval(sid: string) {
   const s = sessions.get(sid);
   if (!s) return;
   try {
-    const { sources } = await retrieveAndScoreSources({
+    const result = await retrieveAndScoreSources({
       data: { topic: s.topic, persona: s.persona, threshold: s.threshold },
     });
+    const sources = Array.isArray(result?.sources) ? result.sources : [];
     updateSession(sid, { sources });
   } catch (e) {
     updateSession(sid, {
