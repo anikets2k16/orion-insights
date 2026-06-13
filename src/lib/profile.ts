@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabase } from "@/integrations/supabase/client";
+
+// Auto-generated types don't yet include our new tables; cast to any for the
+// app-specific tables. Server-side RLS still enforces row ownership.
+const supabase = _supabase as unknown as {
+  auth: typeof _supabase.auth;
+  from: (table: string) => any;
+};
 
 export type Theme = "system" | "light" | "dark";
 
