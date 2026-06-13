@@ -22,6 +22,14 @@ export interface Source {
   title: string;
   source_type: "academic" | "news" | "blog" | "report";
   confidence: number;
+  rationale?: string;
+}
+
+export interface Insight {
+  title: string;
+  summary: string;
+  implications: string;
+  confidence: number;
 }
 
 export interface SessionState {
@@ -30,7 +38,14 @@ export interface SessionState {
   persona: Persona;
   threshold: number;
   startedAt: number;
+  phase: Phase;
+  sources?: Source[];
   curated?: string[];
+  analysis?: string;
+  insights?: Insight[];
+  guardrail?: { pass: boolean; reason: string };
+  report?: string;
+  error?: string;
 }
 
 export interface SessionStatus {
@@ -41,7 +56,6 @@ export interface SessionStatus {
   report_url?: string;
 }
 
-const DURATION_MS = 18_000;
 const sessions = new Map<string, SessionState>();
 
 function persist() {
@@ -75,6 +89,7 @@ export function startResearch(input: {
     persona: input.persona,
     threshold: input.threshold,
     startedAt: Date.now(),
+    phase: "intake",
   };
   sessions.set(sid, state);
   persist();
@@ -86,76 +101,13 @@ export function getSession(sid: string): SessionState | null {
   return sessions.get(sid) ?? null;
 }
 
-export function getStatus(sid: string): SessionStatus | null {
+export function updateSession(sid: string, patch: Partial<SessionState>): SessionState | null {
   const s = getSession(sid);
   if (!s) return null;
-  const elapsed = Date.now() - s.startedAt;
-  const progress = Math.min(1, elapsed / DURATION_MS);
-  const idx = Math.min(PIPELINE.length - 1, Math.floor(progress * PIPELINE.length));
-  const phase = PIPELINE[idx];
-  return {
-    sid,
-    status: progress >= 1 ? "complete" : "running",
-    progress,
-    current_phase: phase,
-    report_url: progress >= 1 ? `#/reports/${sid}` : undefined,
-  };
-}
-
-function hashTopic(topic: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < topic.length; i++) {
-    h ^= topic.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return Math.abs(h);
-}
-
-const DOMAINS = [
-  { d: "nature.com", type: "academic" as const },
-  { d: "arxiv.org", type: "academic" as const },
-  { d: "mckinsey.com", type: "report" as const },
-  { d: "techcrunch.com", type: "news" as const },
-  { d: "stratechery.com", type: "blog" as const },
-  { d: "hbr.org", type: "report" as const },
-  { d: "wired.com", type: "news" as const },
-  { d: "a16z.com", type: "blog" as const },
-];
-
-export function getSources(sid: string): Source[] {
-  const s = getSession(sid);
-  if (!s) return [];
-  const base = hashTopic(s.topic + s.persona);
-  return DOMAINS.slice(0, 6).map((entry, i) => {
-    const slug = s.topic
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "")
-      .slice(0, 48) || "research";
-    const confidence = 0.55 + (((base >> (i * 3)) & 0x1f) / 31) * 0.42;
-    return {
-      url: `https://${entry.d}/${slug}-${i + 1}`,
-      title: titleCase(`${s.topic} — perspective ${i + 1} on ${entry.d.split(".")[0]}`),
-      source_type: entry.type,
-      confidence: Number(confidence.toFixed(2)),
-    };
-  });
-}
-
-function titleCase(s: string) {
-  return s
-    .split(" ")
-    .map((w) => (w.length > 2 ? w[0].toUpperCase() + w.slice(1) : w))
-    .join(" ");
-}
-
-export function curate(sid: string, urls: string[]): number {
-  const s = getSession(sid);
-  if (!s) return 0;
-  s.curated = urls;
-  sessions.set(sid, s);
+  const next = { ...s, ...patch };
+  sessions.set(sid, next);
   persist();
-  return urls.length;
+  return next;
 }
 
 export const PERSONA_LABELS: Record<Persona, string> = {
