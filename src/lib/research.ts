@@ -275,6 +275,189 @@ function mockGaps(topic: string): Gap[] {
   ];
 }
 
+function isNonEmptyText(value: string | null | undefined): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function uniqueStrings(values: string[] | undefined, fallback: string[] = []): string[] {
+  const cleaned = [...new Set((values ?? []).map((value) => value.trim()).filter(Boolean))];
+  return cleaned.length > 0 ? cleaned : [...fallback];
+}
+
+function uniqueNumbers(values: number[] | undefined): number[] {
+  return [...new Set((values ?? []).filter((value) => Number.isFinite(value)).map((value) => Number(value)))];
+}
+
+function selectedSources(state: Pick<SessionState, "sources" | "curated">): Source[] {
+  return (state.sources ?? []).filter((source) => !state.curated || state.curated.includes(source.url));
+}
+
+function buildFallbackAnalysis(topic: string, persona: Persona, sources: Source[]): Analysis {
+  if (sources.length === 0) return mockAnalysis(topic, persona);
+
+  const ranked = [...sources].sort((a, b) => b.confidence - a.confidence);
+  const strongest = ranked[0];
+  const weakest = ranked[ranked.length - 1];
+  const types = uniqueStrings(sources.map((source) => source.source_type));
+
+  return {
+    themes: uniqueStrings([
+      `The evidence base spans ${types.join(", ")} coverage`,
+      `${sources.length} curated source${sources.length === 1 ? "" : "s"} shape the working view of ${topic}`,
+      `The strongest signal comes from ${strongest.title}`,
+    ]).slice(0, 3),
+    tensions: uniqueStrings([
+      `Confidence ranges from ${Math.round(weakest.confidence * 100)}% to ${Math.round(strongest.confidence * 100)}% across the corpus`,
+      types.length > 1
+        ? `Different source types frame ${topic} with different levels of rigor and certainty`
+        : `Cross-validation across independent source types is still limited`,
+    ]).slice(0, 3),
+    narrative:
+      `The curated evidence on ${topic} is directionally useful but uneven in strength. ` +
+      `For the ${PERSONA_LABELS[persona].toLowerCase()}, the most defensible conclusions should anchor on ` +
+      `high-confidence sources like “${strongest.title}” while treating lower-confidence claims as directional rather than settled.`,
+  };
+}
+
+function buildFallbackInsights(topic: string, persona: Persona, sources: Source[]): Insight[] {
+  if (sources.length === 0) return mockInsights(topic, persona);
+
+  const ranked = [...sources].sort((a, b) => b.confidence - a.confidence);
+  const strongest = ranked[0];
+  const weakest = ranked[ranked.length - 1];
+  const types = uniqueStrings(sources.map((source) => source.source_type));
+  const averageConfidence = ranked.reduce((sum, source) => sum + source.confidence, 0) / ranked.length;
+  const leadCitations = uniqueNumbers(ranked.slice(0, 3).map((source) => source.citation ?? 0));
+
+  return [
+    {
+      title: "Highest-confidence evidence anchors the narrative",
+      summary: `${strongest.title} is the strongest source in the curated set at ${Math.round(strongest.confidence * 100)}% confidence and should carry the most decision weight.`,
+      implications: `Base the ${PERSONA_LABELS[persona].toLowerCase()} recommendation on claims supported by the top-ranked evidence first.`,
+      confidence: strongest.confidence,
+      citations: uniqueNumbers([strongest.citation ?? 0]),
+    },
+    {
+      title: types.length > 1 ? "Coverage is triangulated across source types" : "Coverage is still concentrated in one source type",
+      summary: `The current evidence combines ${types.join(", ")} perspectives, giving a clearer view of where ${topic} is substantiated versus still speculative.`,
+      implications: "Prioritize claims that appear consistently across more than one source format, not just within a single narrative style.",
+      confidence: Math.max(0.45, Math.min(1, averageConfidence)),
+      citations: leadCitations,
+    },
+    {
+      title: "Weaker evidence marks the validation frontier",
+      summary: `${weakest.title} sits at the lower-confidence end of the set, showing where the present story is least reliable or most incomplete.`,
+      implications: `Treat adjacent claims as hypotheses until stronger corroboration arrives for ${topic}.`,
+      confidence: Math.max(0.35, weakest.confidence),
+      citations: uniqueNumbers([weakest.citation ?? 0]),
+    },
+  ];
+}
+
+function buildFallbackContradictions(topic: string, sources: Source[]): Contradiction[] {
+  if (sources.length < 2) return [];
+
+  const ranked = [...sources].sort((a, b) => b.confidence - a.confidence);
+  const strongest = ranked[0];
+  const weakest = ranked[ranked.length - 1];
+  const types = uniqueStrings(sources.map((source) => source.source_type));
+
+  if (strongest.url === weakest.url && types.length < 2) return [];
+  if (strongest.confidence - weakest.confidence < 0.12 && types.length < 2) return [];
+
+  return [
+    {
+      claim: `How confidently ${topic} is supported by the current evidence base`,
+      sides: `${strongest.title} provides the strongest backing, while ${weakest.title} is materially less reliable or narrower in scope.`,
+      citations: uniqueNumbers([strongest.citation ?? 0, weakest.citation ?? 0]),
+    },
+  ];
+}
+
+function buildFallbackGaps(topic: string, sources: Source[]): Gap[] {
+  if (sources.length === 0) return mockGaps(topic);
+
+  const types = uniqueStrings(sources.map((source) => source.source_type));
+  const nextEvidenceTarget = !types.includes("academic")
+    ? "peer-reviewed or primary research"
+    : !types.includes("report")
+      ? "benchmark and industry report coverage"
+      : !types.includes("news")
+        ? "recent deployment reporting"
+        : "implementation-level case studies";
+
+  return [
+    {
+      question: `Which claims about ${topic} still lack independent replication?`,
+      why_it_matters: "The strongest story is only as durable as the evidence that can be repeated outside a single source or narrative frame.",
+      suggested_next_step: `Add ${nextEvidenceTarget} focused on replicable outcomes, benchmarks, or primary observations.`,
+    },
+    {
+      question: `Where does the present evidence on ${topic} remain operationally thin?`,
+      why_it_matters: `The current source mix covers ${types.join(", ")}, but it does not fully resolve implementation constraints, edge cases, or failure modes.`,
+      suggested_next_step: "Target a follow-up pass on deployment details, limitations, and real-world counterexamples.",
+    },
+  ];
+}
+
+export function normalizeSessionOutputs(state: Pick<SessionState, "topic" | "persona" | "sources" | "curated" | "analysis" | "insights" | "contradictions" | "gaps" | "executiveSummary">) {
+  const sources = selectedSources(state);
+  const fallbackAnalysis = buildFallbackAnalysis(state.topic, state.persona, sources);
+  const rawAnalysis = state.analysis;
+
+  const analysis: Analysis = {
+    themes: uniqueStrings(rawAnalysis?.themes, fallbackAnalysis.themes).slice(0, 4),
+    tensions: uniqueStrings(rawAnalysis?.tensions, fallbackAnalysis.tensions).slice(0, 4),
+    narrative: isNonEmptyText(rawAnalysis?.narrative) ? rawAnalysis.narrative.trim() : fallbackAnalysis.narrative,
+  };
+
+  const insights = (state.insights ?? [])
+    .map((insight) => ({
+      title: insight.title?.trim() ?? "",
+      summary: insight.summary?.trim() ?? "",
+      implications: insight.implications?.trim() ?? "",
+      confidence: Math.max(0, Math.min(1, Number(insight.confidence) || 0)),
+      citations: uniqueNumbers(insight.citations),
+    }))
+    .filter((insight) => isNonEmptyText(insight.title) && isNonEmptyText(insight.summary) && isNonEmptyText(insight.implications));
+
+  const contradictions = (state.contradictions ?? [])
+    .map((contradiction) => ({
+      claim: contradiction.claim?.trim() ?? "",
+      sides: contradiction.sides?.trim() ?? "",
+      citations: uniqueNumbers(contradiction.citations),
+    }))
+    .filter((contradiction) => isNonEmptyText(contradiction.claim) && isNonEmptyText(contradiction.sides));
+
+  const gaps = (state.gaps ?? [])
+    .map((gap) => ({
+      question: gap.question?.trim() ?? "",
+      why_it_matters: gap.why_it_matters?.trim() ?? "",
+      suggested_next_step: gap.suggested_next_step?.trim() ?? "",
+    }))
+    .filter((gap) => isNonEmptyText(gap.question) && isNonEmptyText(gap.why_it_matters) && isNonEmptyText(gap.suggested_next_step));
+
+  const normalizedInsights = insights.length > 0 ? insights : buildFallbackInsights(state.topic, state.persona, sources);
+  const normalizedContradictions = contradictions.length > 0 ? contradictions : buildFallbackContradictions(state.topic, sources);
+  const normalizedGaps = gaps.length > 0 ? gaps : buildFallbackGaps(state.topic, sources);
+
+  const executiveSummary = isNonEmptyText(state.executiveSummary)
+    ? state.executiveSummary.trim()
+    : `Using ${sources.length} curated source${sources.length === 1 ? "" : "s"} on ${state.topic}, ` +
+      `ORION surfaced ${normalizedInsights.length} insight${normalizedInsights.length === 1 ? "" : "s"}, ` +
+      `${normalizedContradictions.length} contradiction${normalizedContradictions.length === 1 ? "" : "s"}, and ` +
+      `${normalizedGaps.length} open gap${normalizedGaps.length === 1 ? "" : "s"} for the ${PERSONA_LABELS[state.persona].toLowerCase()}.`;
+
+  return {
+    sources,
+    executiveSummary,
+    analysis,
+    insights: normalizedInsights,
+    contradictions: normalizedContradictions,
+    gaps: normalizedGaps,
+  };
+}
+
 function buildReportObject(state: SessionState): Report {
   const sources = (state.sources ?? []).filter((s) => !state.curated || state.curated.includes(s.url));
   const insights = state.insights ?? [];
