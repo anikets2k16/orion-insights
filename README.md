@@ -52,6 +52,19 @@ make frontend     # http://localhost:3000
 python scripts/run_research.py "AI in drug discovery" --persona researcher
 ```
 
+## One-click deployment console
+A styled local control panel (no dependencies — pure Python stdlib) that runs every step
+with live streamed output: prerequisites, `.env` editor, install, tests, the determinism
+gate, start API/frontend/Docker, and **create + push the GitHub repo**.
+
+```bash
+./deploy.sh           # or: python3 deploy/console.py   (double-click deploy.command on macOS)
+# opens http://127.0.0.1:8900
+```
+
+Publishing to GitHub from the console needs a one-time `gh auth login` first; then the
+"Create repo & push" button runs `gh repo create orion-researcher --private --source=. --push`.
+
 ## Tests (offline, no keys — NFR-6)
 ```bash
 make test                 # 22 tests; provider call is patched, cache/agents/graph run real
