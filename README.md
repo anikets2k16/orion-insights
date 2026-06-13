@@ -12,6 +12,34 @@ ORION orchestrates 9 specialized AI agents through an 8-step LangGraph pipeline 
 
 ---
 
+## Deployment Topology (two services)
+
+The deterministic engine and the UI run as **separate services**. Lovable hosts the
+TanStack Start frontend; the multi-agent Python engine runs anywhere that supports
+Python 3.11 (the included `render.yaml` is a one-click Render Blueprint).
+
+```text
+Browser (Lovable, TanStack Start)
+   │  fetch  (Authorization: Bearer <Supabase JWT>)
+   ▼
+ORION FastAPI  ── LangGraph + 9 agents + content-addressed cache (NFR-1)
+   │
+   └── Postgres + Redis + Celery worker
+```
+
+The frontend talks to the backend through `src/lib/orion-api.ts`, configured
+with `VITE_ORION_API_URL`. There is **no agent logic in the frontend** — the
+determinism guarantee (NFR-1) is enforced server-side only.
+
+| Variable | Where | Purpose |
+| --- | --- | --- |
+| `VITE_ORION_API_URL` | Lovable env | Public URL of the deployed FastAPI service |
+| `ORION_CORS_ORIGINS` | Render env | Comma-separated allow-list including the Lovable origin |
+| `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `TAVILY_API_KEY` | Render env | LLM/search providers |
+| `JWT_SECRET` | Render env | Backend session signing |
+
+---
+
 ## Table of Contents
 
 - [Highlights](#highlights)
