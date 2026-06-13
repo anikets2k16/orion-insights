@@ -48,6 +48,36 @@ export interface Contradiction {
   citations: number[];
 }
 
+export interface Gap {
+  question: string;
+  why_it_matters: string;
+  suggested_next_step: string;
+}
+
+export interface Analysis {
+  themes: string[];
+  tensions: string[];
+  narrative: string;
+}
+
+/**
+ * Structured report output — mirrors a Pydantic BaseModel on the backend.
+ * The HTML view is derived from this object; downstream consumers can also
+ * read the typed object directly.
+ */
+export interface Report {
+  topic: string;
+  persona: Persona;
+  threshold: number;
+  executive_summary: string;
+  analysis: Analysis;
+  insights: Insight[];
+  contradictions: Contradiction[];
+  gaps: Gap[];
+  sources: Source[];
+  generated_at: string;
+}
+
 export interface SessionState {
   sid: string;
   topic: string;
@@ -58,8 +88,11 @@ export interface SessionState {
   progress?: number;
   sources?: Source[];
   curated?: string[];
+  analysis?: Analysis;
   insights?: Insight[];
   contradictions?: Contradiction[];
+  gaps?: Gap[];
+  report?: Report;
   reportHtml?: string;
   error?: string;
   status?: "queued" | "running" | "awaiting_curation" | "complete";
@@ -206,24 +239,84 @@ function mockContradictions(topic: string): Contradiction[] {
   ];
 }
 
-function buildReport(state: SessionState): string {
-  const srcs = (state.sources ?? []).filter((s) => !state.curated || state.curated.includes(s.url));
+function mockAnalysis(topic: string, persona: Persona): Analysis {
+  return {
+    themes: [
+      `Maturity of ${topic} across academic and industry sources`,
+      `Gap between vendor claims and independent evaluation`,
+      `Practitioner tooling as the limiting factor`,
+    ],
+    tensions: [
+      `Bullish industry coverage vs. skeptical independent reviews`,
+      `Reported gains vs. replicated benchmarks`,
+    ],
+    narrative:
+      `Across the curated corpus, ${topic} is moving from research into production, ` +
+      `but the ${PERSONA_LABELS[persona].toLowerCase()} should weight independent evidence ` +
+      `over vendor narratives when deciding next steps.`,
+  };
+}
+
+function mockGaps(topic: string): Gap[] {
+  return [
+    {
+      question: `What does independent replication of headline ${topic} results look like at scale?`,
+      why_it_matters: `Most reported gains come from vendor-controlled benchmarks.`,
+      suggested_next_step: `Commission a small internal benchmark on representative workloads.`,
+    },
+    {
+      question: `Which sub-segments of ${topic} have durable tooling?`,
+      why_it_matters: `Tooling, not capability, is the cited bottleneck.`,
+      suggested_next_step: `Map the current tooling landscape and rate maturity.`,
+    },
+  ];
+}
+
+function buildReportObject(state: SessionState): Report {
+  const sources = (state.sources ?? []).filter((s) => !state.curated || state.curated.includes(s.url));
   const insights = state.insights ?? [];
-  const contras = state.contradictions ?? [];
-  const persona = PERSONA_LABELS[state.persona];
+  const analysis = state.analysis ?? mockAnalysis(state.topic, state.persona);
+  return {
+    topic: state.topic,
+    persona: state.persona,
+    threshold: state.threshold,
+    executive_summary:
+      `This report synthesises ${sources.length} curated source${sources.length === 1 ? "" : "s"} on ` +
+      `${state.topic} through a ${PERSONA_LABELS[state.persona].toLowerCase()} lens, surfacing ` +
+      `${insights.length} insights, ${(state.contradictions ?? []).length} contradiction(s), and ` +
+      `${(state.gaps ?? []).length} open question(s).`,
+    analysis,
+    insights,
+    contradictions: state.contradictions ?? [],
+    gaps: state.gaps ?? [],
+    sources,
+    generated_at: new Date().toISOString(),
+  };
+}
+
+function renderReportHtml(r: Report): string {
   const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]!));
+  const persona = PERSONA_LABELS[r.persona];
   return `
     <article style="line-height:1.6">
-      <p><em>Persona: ${esc(persona)} · confidence threshold ${state.threshold.toFixed(2)} · ${srcs.length} sources</em></p>
+      <p><em>Persona: ${esc(persona)} · confidence threshold ${r.threshold.toFixed(2)} · ${r.sources.length} sources</em></p>
       <h3>Executive summary</h3>
-      <p>This report synthesises ${srcs.length} curated sources on <strong>${esc(state.topic)}</strong> through a ${esc(persona.toLowerCase())} lens. It surfaces ${insights.length} insights and ${contras.length} contradiction${contras.length === 1 ? "" : "s"} flagged during analysis.</p>
+      <p>${esc(r.executive_summary)}</p>
+      <h3>Analysis</h3>
+      <p>${esc(r.analysis.narrative)}</p>
+      <p><strong>Themes:</strong></p>
+      <ul>${r.analysis.themes.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
+      <p><strong>Tensions:</strong></p>
+      <ul>${r.analysis.tensions.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
       <h3>Key insights</h3>
-      <ol>${insights.map((i) => `<li><strong>${esc(i.title)}</strong> — ${esc(i.summary)} <em>Implications:</em> ${esc(i.implications)} <span style="opacity:.7">[${(i.citations ?? []).join(", ")}]</span></li>`).join("")}</ol>
+      <ol>${r.insights.map((i) => `<li><strong>${esc(i.title)}</strong> — ${esc(i.summary)} <em>Implications:</em> ${esc(i.implications)} <span style="opacity:.7">[${(i.citations ?? []).join(", ")}]</span></li>`).join("")}</ol>
       <h3>Contradictions</h3>
-      <ul>${contras.map((c) => `<li><strong>${esc(c.claim)}</strong> — ${esc(c.sides)} <span style="opacity:.7">[${c.citations.join(", ")}]</span></li>`).join("")}</ul>
+      <ul>${r.contradictions.map((c) => `<li><strong>${esc(c.claim)}</strong> — ${esc(c.sides)} <span style="opacity:.7">[${c.citations.join(", ")}]</span></li>`).join("")}</ul>
+      <h3>Open questions &amp; gaps</h3>
+      <ul>${r.gaps.map((g) => `<li><strong>${esc(g.question)}</strong> — ${esc(g.why_it_matters)} <em>Next:</em> ${esc(g.suggested_next_step)}</li>`).join("")}</ul>
       <h3>Sources</h3>
-      <ol>${srcs.map((s) => `<li><a href="${s.url}" target="_blank" rel="noreferrer">${esc(s.title)}</a> — <span style="opacity:.7">${s.source_type}, confidence ${s.confidence.toFixed(2)}</span></li>`).join("")}</ol>
-      <p style="opacity:.6;margin-top:24px;font-size:13px">Demo report generated by the ORION simulated pipeline.</p>
+      <ol>${r.sources.map((s) => `<li><a href="${s.url}" target="_blank" rel="noreferrer">${esc(s.title)}</a> — <span style="opacity:.7">${s.source_type}, confidence ${s.confidence.toFixed(2)}</span></li>`).join("")}</ol>
+      <p style="opacity:.6;margin-top:24px;font-size:13px">Generated ${esc(r.generated_at)} — ORION simulated pipeline.</p>
     </article>
   `.trim();
 }
@@ -242,8 +335,11 @@ function schedule(sid: string) {
       return;
     }
     if (idx >= PIPELINE.length - 1) {
-      const withReport = updateSession(sid, { status: "complete", progress: 1 });
-      if (withReport) updateSession(sid, { reportHtml: buildReport(withReport) });
+      const completed = updateSession(sid, { status: "complete", progress: 1 });
+      if (completed) {
+        const report = buildReportObject(completed);
+        updateSession(sid, { report, reportHtml: renderReportHtml(report) });
+      }
       return;
     }
     const next = PIPELINE[idx + 1];
@@ -253,8 +349,10 @@ function schedule(sid: string) {
       status: "running",
     };
     if (next === "score") patch.sources = mockSources(s.topic, s.threshold);
-    if (next === "insight") patch.insights = mockInsights(s.topic, s.persona);
+    if (next === "analyse") patch.analysis = mockAnalysis(s.topic, s.persona);
     if (next === "contradict") patch.contradictions = mockContradictions(s.topic);
+    if (next === "insight") patch.insights = mockInsights(s.topic, s.persona);
+    if (next === "gaps") patch.gaps = mockGaps(s.topic);
     updateSession(sid, patch);
     window.setTimeout(tick, PHASE_MS);
   };
