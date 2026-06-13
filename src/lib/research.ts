@@ -93,6 +93,7 @@ export interface SessionState {
   contradictions?: Contradiction[];
   gaps?: Gap[];
   report?: Report;
+  executiveSummary?: string;
   reportHtml?: string;
   error?: string;
   status?: "queued" | "running" | "awaiting_curation" | "complete";
@@ -280,7 +281,7 @@ function buildReportObject(state: SessionState): Report {
     topic: state.topic,
     persona: state.persona,
     threshold: state.threshold,
-    executive_summary:
+    executive_summary: state.executiveSummary ??
       `This report synthesises ${sources.length} curated source${sources.length === 1 ? "" : "s"} on ` +
       `${state.topic} through a ${PERSONA_LABELS[state.persona].toLowerCase()} lens, surfacing ` +
       `${insights.length} insights, ${(state.contradictions ?? []).length} contradiction(s), and ` +
@@ -377,11 +378,9 @@ async function runSynthesis(sid: string) {
       insights: out.insights,
       contradictions: out.contradictions,
       gaps: out.gaps,
+      executiveSummary: out.executive_summary,
       report: undefined,
     });
-    // Stash exec summary on state so buildReportObject can use it.
-    const next = sessions.get(sid);
-    if (next) sessions.set(sid, { ...next, ...({ _execSummary: out.executive_summary } as Partial<SessionState>) });
   } catch (e) {
     updateSession(sid, {
       error: `Synthesis failed: ${e instanceof Error ? e.message : String(e)}`,
