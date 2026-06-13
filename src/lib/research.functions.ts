@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { generateText, Output } from "ai";
-import { z } from "zod";
+import { generateText } from "ai";
 import { createLovableAiGatewayProvider } from "./ai-gateway.server";
 
 const MODEL = "google/gemini-3-flash-preview";
@@ -22,6 +21,36 @@ function normalizeType(t: unknown): "academic" | "news" | "blog" | "report" {
   if (s.includes("news")) return "news";
   if (s.includes("report") || s.includes("white")) return "report";
   return "blog";
+}
+
+/**
+ * Robust JSON extraction. Gemini through openai-compatible doesn't support
+ * structured outputs reliably, so we ask for JSON and parse defensively.
+ */
+function parseJson<T = unknown>(raw: string, fallback: T): T {
+  if (!raw) return fallback;
+  let s = raw.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+  const first = s.search(/[\[{]/);
+  if (first === -1) return fallback;
+  const opener = s[first];
+  const closer = opener === "[" ? "]" : "}";
+  const last = s.lastIndexOf(closer);
+  if (last === -1 || last < first) return fallback;
+  s = s.slice(first, last + 1);
+  try {
+    return JSON.parse(s) as T;
+  } catch {
+    try {
+      const cleaned = s
+        .replace(/,\s*}/g, "}")
+        .replace(/,\s*\]/g, "]")
+        // eslint-disable-next-line no-control-regex
+        .replace(/[\x00-\x1F\x7F]/g, " ");
+      return JSON.parse(cleaned) as T;
+    } catch {
+      return fallback;
+    }
+  }
 }
 
 function inferType(url: string): "academic" | "news" | "blog" | "report" {
