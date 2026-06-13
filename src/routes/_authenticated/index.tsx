@@ -1,8 +1,15 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
-import { startResearch, type Persona } from "../lib/research";
+import { useEffect, useState } from "react";
+import { startResearch, type Persona } from "../../lib/research";
+import { supabase as _supabase } from "@/integrations/supabase/client";
+import { useProfile } from "@/lib/profile";
 
-export const Route = createFileRoute("/")({
+const supabase = _supabase as unknown as {
+  auth: typeof _supabase.auth;
+  from: (table: string) => any;
+};
+
+export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
     meta: [
       { title: "ORION Insights — Start a Research Session" },
@@ -30,16 +37,35 @@ const PERSONAS: { id: Persona; label: string; blurb: string }[] = [
 
 function NewResearch() {
   const navigate = useNavigate();
+  const profile = useProfile();
   const [topic, setTopic] = useState("");
   const [persona, setPersona] = useState<Persona>("researcher");
   const [threshold, setThreshold] = useState(0.7);
   const [busy, setBusy] = useState(false);
 
-  function submit(e: React.FormEvent) {
+  useEffect(() => {
+    if (profile) {
+      setPersona(profile.default_persona as Persona);
+      setThreshold(profile.default_threshold);
+    }
+  }, [profile]);
+
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!topic.trim()) return;
     setBusy(true);
     const state = startResearch({ topic: topic.trim(), persona, threshold });
+    const { data: u } = await supabase.auth.getUser();
+    if (u.user) {
+      await supabase.from("research_sessions").insert({
+        id: state.sid,
+        user_id: u.user.id,
+        topic: state.topic,
+        persona: state.persona,
+        threshold: state.threshold,
+        status: "running",
+      });
+    }
     navigate({ to: "/session/$sid", params: { sid: state.sid } });
   }
 

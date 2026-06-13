@@ -1,6 +1,9 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { supabase as _supabase } from "@/integrations/supabase/client";
+
+const supabase = _supabase as unknown as { from: (table: string) => any };
 import {
   PIPELINE,
   getSession,
@@ -10,7 +13,7 @@ import {
   type Source,
   type SessionState,
   type Contradiction,
-} from "../lib/research";
+} from "../../lib/research";
 import {
   deepenResearch,
   findContradictions,
@@ -20,9 +23,9 @@ import {
   generateSources,
   identifyGaps,
   runGuardrail,
-} from "../lib/research.functions";
+} from "../../lib/research.functions";
 
-export const Route = createFileRoute("/session/$sid")({
+export const Route = createFileRoute("/_authenticated/session/$sid")({
   head: ({ params }) => ({
     meta: [
       { title: `Session ${params.sid} — ORION Insights` },
@@ -31,13 +34,7 @@ export const Route = createFileRoute("/session/$sid")({
       { property: "og:description", content: "Watch the agents work and curate the sources." },
     ],
   }),
-  loader: ({ params }) => {
-    if (typeof window !== "undefined") {
-      const s = getSession(params.sid);
-      if (!s) throw notFound();
-    }
-    return { sid: params.sid };
-  },
+  loader: ({ params }) => ({ sid: params.sid }),
   notFoundComponent: () => (
     <div className="orion-card">
       <h1 className="orion-grad">Session not found</h1>
@@ -60,6 +57,7 @@ export const Route = createFileRoute("/session/$sid")({
 function SessionPage() {
   const { sid } = Route.useParams();
   const [session, setSession] = useState<SessionState | null>(() => getSession(sid));
+  const [savedReport, setSavedReport] = useState<string | null>(null);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
@@ -78,6 +76,19 @@ function SessionPage() {
     const next = updateSession(sid, p);
     if (next) setSession(next);
   }
+
+  // Load a saved report if revisiting a past session that isn't in local cache.
+  useEffect(() => {
+    if (session) return;
+    (async () => {
+      const { data } = await supabase
+        .from("research_sessions")
+        .select("report_html")
+        .eq("id", sid)
+        .maybeSingle();
+      if (data?.report_html) setSavedReport(data.report_html);
+    })();
+  }, [session, sid]);
 
   // Phase 1: intake -> retrieve sources (auto on mount)
   useEffect(() => {
@@ -163,18 +174,45 @@ function SessionPage() {
         },
       });
       patch({ report: markdown });
+      await supabase
+        .from("research_sessions")
+        .update({
+          status: "complete",
+          source_count: allSources.length,
+          insight_count: insights.length,
+          contradiction_count: contradictions.length,
+          report_html: markdown,
+        })
+        .eq("id", sid);
     } catch (e) {
       setError(messageOf(e));
+      await supabase.from("research_sessions").update({ status: "failed" }).eq("id", sid);
     } finally {
       setRunning(false);
     }
   }
 
   if (!session) {
+    if (savedReport) {
+      return (
+        <main>
+          <section className="orion-card">
+            <h1 className="orion-grad">Saved Report</h1>
+            <pre style={{ whiteSpace: "pre-wrap", fontFamily: "inherit", margin: 0 }}>
+              {savedReport}
+            </pre>
+          </section>
+        </main>
+      );
+    }
     return (
       <main>
         <div className="orion-card">
           <h1 className="orion-grad">Loading…</h1>
+          <p className="orion-muted">If this session was created in another browser, only the saved report is available here.</p>
+          <Link to="/history" className="orion-btn-primary" style={{ display: "inline-block", marginTop: 12 }}>
+            Back to history
+          </Link>
         </div>
       </main>
     );

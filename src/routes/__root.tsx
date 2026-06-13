@@ -13,6 +13,8 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ParticleField } from "../components/ParticleField";
 import { Nav } from "../components/Nav";
+import { supabase } from "@/integrations/supabase/client";
+import { fetchProfile, applyTheme } from "@/lib/profile";
 
 function NotFoundComponent() {
   return (
@@ -121,6 +123,20 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const router = useRouter();
+
+  useEffect(() => {
+    fetchProfile().then((p) => p && applyTheme(p.theme));
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
+        router.invalidate();
+        if (event === "SIGNED_IN" || event === "USER_UPDATED") {
+          fetchProfile().then((p) => p && applyTheme(p.theme));
+        }
+      }
+    });
+    return () => sub.subscription.unsubscribe();
+  }, [router]);
 
   return (
     <QueryClientProvider client={queryClient}>
