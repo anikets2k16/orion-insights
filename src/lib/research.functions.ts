@@ -114,16 +114,18 @@ export const retrieveAndScoreSources = createServerFn({ method: "POST" })
     const ScoreSchema = z.object({
       scored: z.array(
         z.object({
-          idx: z.number().describe("Source index"),
-          confidence: z.coerce.number().describe("0.0-1.0 confidence score"),
+          idx: z.coerce.number().describe("Source index"),
+          confidence: confidenceSchema.describe("0.0-1.0 confidence score"),
           rationale: z.string().describe("One sentence rationale"),
         }),
-      ),
+      ).catch([]),
     });
 
-    const { experimental_output: out } = await generateText({
+    const { object: out } = await generateObject({
       model,
-      experimental_output: Output.object({ schema: ScoreSchema }),
+      schema: ScoreSchema,
+      experimental_repairText: repairStructuredJson,
+      temperature: 0,
       system:
         "You are a critical research analyst scoring sources for a multi-agent research assistant. " +
         "Rate each source from 0.0 to 1.0 on credibility, relevance to the topic, and recency. " +
@@ -136,7 +138,7 @@ export const retrieveAndScoreSources = createServerFn({ method: "POST" })
         docs.map((d) => `[${d.idx}] ${d.title}\n${d.url}\n${d.snippet}`).join("\n\n"),
     });
 
-    const byIdx = new Map((out?.scored ?? []).map((s) => [s.idx, s]));
+    const byIdx = new Map(out.scored.map((s) => [s.idx, s]));
     const sources: Source[] = docs
       .map((d, i) => {
         const s = byIdx.get(d.idx);
@@ -195,8 +197,8 @@ export const analyseAndSynthesize = createServerFn({ method: "POST" })
     const Schema = z.object({
       executive_summary: z.string().describe("3-5 sentence summary of the findings"),
       analysis: z.object({
-        themes: z.array(z.string()).describe("Key themes identified"),
-        tensions: z.array(z.string()).describe("Conflicts or tensions between sources"),
+        themes: z.array(z.string()).catch([]).describe("Key themes identified"),
+        tensions: z.array(z.string()).catch([]).describe("Conflicts or tensions between sources"),
         narrative: z.string().describe("Overall narrative synthesis"),
       }),
       insights: z.array(
@@ -204,15 +206,15 @@ export const analyseAndSynthesize = createServerFn({ method: "POST" })
           title: z.string().describe("Insight title"),
           summary: z.string().describe("Concise summary"),
           implications: z.string().describe("Implications for the persona"),
-          confidence: z.coerce.number().describe("0.0 to 1.0"),
-          citations: z.array(z.coerce.number()).default([]).describe("Source indices"),
+          confidence: confidenceSchema.describe("0.0 to 1.0"),
+          citations: citationsSchema.describe("Source indices"),
         }),
       ).describe("3-5 key insights from sources"),
       contradictions: z.array(
         z.object({
           claim: z.string().describe("The conflicting claim"),
           sides: z.string().describe("The different perspectives"),
-          citations: z.array(z.coerce.number()).default([]).describe("Source indices"),
+          citations: citationsSchema.describe("Source indices"),
         }),
       ).default([]).describe("Significant disagreements found between sources"),
       gaps: z.array(
@@ -231,9 +233,11 @@ export const analyseAndSynthesize = createServerFn({ method: "POST" })
       )
       .join("\n\n");
 
-    const { experimental_output: out } = await generateText({
+    const { object: out } = await generateObject({
       model,
-      experimental_output: Output.object({ schema: Schema }),
+      schema: Schema,
+      experimental_repairText: repairStructuredJson,
+      temperature: 0,
       system:
         "You are ORION, a multi-agent research synthesiser. Produce a rigorous, evidence-grounded " +
         "report from the curated sources only. Every insight and contradiction must cite the " +
