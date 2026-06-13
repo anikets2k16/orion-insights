@@ -459,23 +459,17 @@ export function normalizeSessionOutputs(state: Pick<SessionState, "topic" | "per
 }
 
 function buildReportObject(state: SessionState): Report {
-  const sources = (state.sources ?? []).filter((s) => !state.curated || state.curated.includes(s.url));
-  const insights = state.insights ?? [];
-  const analysis = state.analysis ?? mockAnalysis(state.topic, state.persona);
+  const normalized = normalizeSessionOutputs(state);
   return {
     topic: state.topic,
     persona: state.persona,
     threshold: state.threshold,
-    executive_summary: state.executiveSummary ??
-      `This report synthesises ${sources.length} curated source${sources.length === 1 ? "" : "s"} on ` +
-      `${state.topic} through a ${PERSONA_LABELS[state.persona].toLowerCase()} lens, surfacing ` +
-      `${insights.length} insights, ${(state.contradictions ?? []).length} contradiction(s), and ` +
-      `${(state.gaps ?? []).length} open question(s).`,
-    analysis,
-    insights,
-    contradictions: state.contradictions ?? [],
-    gaps: state.gaps ?? [],
-    sources,
+    executive_summary: normalized.executiveSummary,
+    analysis: normalized.analysis,
+    insights: normalized.insights,
+    contradictions: normalized.contradictions,
+    gaps: normalized.gaps,
+    sources: normalized.sources,
     generated_at: new Date().toISOString(),
   };
 }
@@ -556,12 +550,21 @@ async function runSynthesis(sid: string) {
         })),
       },
     });
-    updateSession(sid, {
+    const normalized = normalizeSessionOutputs({
+      ...s,
+      sources,
       analysis: out.analysis,
       insights: out.insights,
       contradictions: out.contradictions,
       gaps: out.gaps,
       executiveSummary: out.executive_summary,
+    });
+    updateSession(sid, {
+      analysis: normalized.analysis,
+      insights: normalized.insights,
+      contradictions: normalized.contradictions,
+      gaps: normalized.gaps,
+      executiveSummary: normalized.executiveSummary,
       report: undefined,
     });
   } catch (e) {
