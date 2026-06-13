@@ -146,16 +146,13 @@ function RootComponent() {
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
         router.invalidate();
-        if (event !== "SIGNED_OUT") {
-          queryClient.invalidateQueries();
-        }
         if (event === "SIGNED_IN" || event === "USER_UPDATED") {
           fetchProfile().then((p) => p && applyTheme(p.theme));
         }
       }
     });
     return () => sub.subscription.unsubscribe();
-  }, [router, queryClient]);
+  }, [router]);
 
   return (
     <QueryClientProvider client={queryClient}>

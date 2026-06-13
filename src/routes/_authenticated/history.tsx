@@ -45,12 +45,6 @@ function HistoryPage() {
 
   useEffect(() => {
     load();
-    const { data: sub } = (_supabase as any).auth.onAuthStateChange((event: string) => {
-      if (event === "SIGNED_IN" || event === "USER_UPDATED" || event === "INITIAL_SESSION") {
-        load();
-      }
-    });
-    return () => sub.subscription.unsubscribe();
   }, []);
 
   async function rename(id: string) {

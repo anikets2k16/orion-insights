@@ -36,56 +36,5 @@
 <div>{% for a in session.selected_artifacts %}<span class="tag">{{ a }}</span>{% endfor %}</div>
 {% endif %}
 
-{% if session.structured_report %}
-{% set sr = session.structured_report %}
-<h2>Structured Report</h2>
-
-{% if sr.key_findings %}
-<h3>Key Findings</h3>
-{% for f in sr.key_findings %}
-<div class="card">
-  <h4>{{ f.title }}
-    <span class="tag">conf {{ '%.2f'|format(f.confidence) }}</span>
-    {% for c in f.citations %}<span class="tag">[{{ c }}]</span>{% endfor %}
-  </h4>
-  <p>{{ f.detail }}</p>
-</div>
-{% endfor %}
-{% endif %}
-
-{% if sr.sections %}
-<h3>Sections</h3>
-{% for s in sr.sections %}
-<div class="card">
-  <h4>{{ s.title }}
-    {% for c in s.citations %}<span class="tag">[{{ c }}]</span>{% endfor %}
-  </h4>
-  <p style="white-space:pre-wrap">{{ s.body }}</p>
-</div>
-{% endfor %}
-{% endif %}
-
-{% if sr.recommendations %}
-<h3>Recommendations</h3>
-{% for r in sr.recommendations %}
-<div class="card">
-  <h4>{{ r.action }} <span class="tag">{{ r.priority }}</span></h4>
-  <p class="muted">{{ r.rationale }}</p>
-</div>
-{% endfor %}
-{% endif %}
-
-{% if sr.risks_and_gaps %}
-<h3>Risks &amp; Gaps</h3>
-{% for g in sr.risks_and_gaps %}
-<div class="card">
-  <p>{{ g.description }}
-    {% for c in g.citations %}<span class="tag">[{{ c }}]</span>{% endfor %}
-  </p>
-</div>
-{% endfor %}
-{% endif %}
-{% endif %}
-
 {% block persona_extra %}{% endblock %}
 {% endblock %}
