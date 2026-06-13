@@ -50,23 +50,37 @@ function NewResearch() {
     }
   }, [profile]);
 
+  const [error, setError] = useState<string | null>(null);
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!topic.trim()) return;
     setBusy(true);
-    const state = startResearch({ topic: topic.trim(), persona, threshold });
-    const { data: u } = await supabase.auth.getUser();
-    if (u.user) {
-      await supabase.from("research_sessions").insert({
-        id: state.sid,
-        user_id: u.user.id,
-        topic: state.topic,
-        persona: state.persona,
-        threshold: state.threshold,
-        status: "running",
+    setError(null);
+    try {
+      const state = await startResearch({
+        topic: topic.trim(),
+        persona,
+        threshold,
+        selected_agent_models: profile?.agent_models ?? {},
       });
+      const { data: u } = await supabase.auth.getUser();
+      if (u.user) {
+        await supabase.from("research_sessions").insert({
+          id: state.sid,
+          user_id: u.user.id,
+          topic: state.topic,
+          persona: state.persona,
+          threshold: state.threshold,
+          status: "running",
+        });
+      }
+      navigate({ to: "/session/$sid", params: { sid: state.sid } });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
     }
-    navigate({ to: "/session/$sid", params: { sid: state.sid } });
   }
 
   return (
@@ -118,6 +132,9 @@ function NewResearch() {
           <button className="orion-btn-primary" disabled={!topic.trim() || busy} type="submit">
             {busy ? "Starting…" : "Start research"}
           </button>
+          {error && (
+            <p style={{ marginTop: 12, color: "#ff7a90" }}>{error}</p>
+          )}
         </form>
       </section>
 
