@@ -1,6 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
+const FALLBACK_SUPABASE_URL = "https://tobdkhzivbxtkezluyzd.supabase.co";
+const FALLBACK_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_GTr5QaQD-j95yxqI6cNHHQ_XT2Y2lKt";
+
 declare global {
   interface Window {
     __ORION_PUBLIC_ENV__?: {
@@ -13,9 +16,12 @@ declare global {
 function getBrowserBackendConfig() {
   const injected = typeof window !== "undefined" ? window.__ORION_PUBLIC_ENV__ : undefined;
 
-  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || injected?.SUPABASE_URL;
+  const SUPABASE_URL =
+    import.meta.env.VITE_SUPABASE_URL || injected?.SUPABASE_URL || FALLBACK_SUPABASE_URL;
   const SUPABASE_PUBLISHABLE_KEY =
-    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || injected?.SUPABASE_PUBLISHABLE_KEY;
+    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    injected?.SUPABASE_PUBLISHABLE_KEY ||
+    FALLBACK_SUPABASE_PUBLISHABLE_KEY;
 
   return { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY };
 }
