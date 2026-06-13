@@ -121,11 +121,12 @@ export const retrieveAndScoreSources = createServerFn({ method: "POST" })
       ).catch([]),
     });
 
-    const { object: out } = await generateObject({
+    const result = await generateObject({
       model,
       schema: ScoreSchema,
       experimental_repairText: repairStructuredJson,
       temperature: 0,
+      maxOutputTokens: 4096,
       system:
         "You are a critical research analyst scoring sources for a multi-agent research assistant. " +
         "Rate each source from 0.0 to 1.0 on credibility, relevance to the topic, and recency. " +
@@ -138,7 +139,9 @@ export const retrieveAndScoreSources = createServerFn({ method: "POST" })
         docs.map((d) => `[${d.idx}] ${d.title}\n${d.url}\n${d.snippet}`).join("\n\n"),
     });
 
-    const byIdx = new Map(out.scored.map((s) => [s.idx, s]));
+    const out = (result?.object ?? {}) as Partial<z.infer<typeof ScoreSchema>>;
+    const scored = Array.isArray(out.scored) ? out.scored : [];
+    const byIdx = new Map(scored.map((s) => [s.idx, s]));
     const sources: Source[] = docs
       .map((d, i) => {
         const s = byIdx.get(d.idx);
