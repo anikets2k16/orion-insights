@@ -1,3 +1,5 @@
+import { analyseAndSynthesize, retrieveAndScoreSources } from "./research.functions";
+
 /**
  * ORION research flow — client-side simulated pipeline.
  *
@@ -335,7 +337,6 @@ async function runRetrieval(sid: string) {
   const s = sessions.get(sid);
   if (!s) return;
   try {
-    const { retrieveAndScoreSources } = await import("./research.functions");
     const { sources } = await retrieveAndScoreSources({
       data: { topic: s.topic, persona: s.persona, threshold: s.threshold },
     });
@@ -357,7 +358,6 @@ async function runSynthesis(sid: string) {
     return;
   }
   try {
-    const { analyseAndSynthesize } = await import("./research.functions");
     const out = await analyseAndSynthesize({
       data: {
         topic: s.topic,
