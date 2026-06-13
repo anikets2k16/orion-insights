@@ -142,3 +142,239 @@
     color: var(--color-foreground);
   }
 }
+
+/* ── ORION Insights theme ─────────────────────────────────────────── */
+:root {
+  --orion-bg: #060612;
+  --orion-card: rgba(255, 255, 255, 0.04);
+  --orion-border: rgba(255, 255, 255, 0.08);
+  --orion-blue: #00d4ff;
+  --orion-purple: #8b5cf6;
+  --orion-cyan: #06ffa5;
+  --orion-amber: #fbbf24;
+  --orion-red: #ff4d6d;
+  --orion-text: #e2e8f0;
+  --orion-muted: #7c85a0;
+  --orion-gradient: linear-gradient(135deg, #00d4ff, #8b5cf6, #06ffa5);
+}
+
+html, body {
+  background: var(--orion-bg);
+  color: var(--orion-text);
+  min-height: 100%;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+.orion-shell {
+  position: relative;
+  z-index: 1;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 32px 24px 80px;
+}
+
+.orion-brand {
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+}
+
+.orion-grad {
+  background: var(--orion-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.orion-nav {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  margin: 16px 0 28px;
+  flex-wrap: wrap;
+}
+
+.orion-nav a {
+  background: none;
+  border: none;
+  color: var(--orion-muted);
+  cursor: pointer;
+  font-size: 14px;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.orion-nav a.active,
+.orion-nav a:hover {
+  color: var(--orion-blue);
+}
+
+.orion-card {
+  background: var(--orion-card);
+  border: 1px solid var(--orion-border);
+  border-radius: 14px;
+  padding: 22px;
+  margin: 14px 0;
+  backdrop-filter: blur(8px);
+}
+
+.orion-card h1 {
+  font-size: 30px;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.orion-card h2 {
+  font-size: 18px;
+  color: var(--orion-blue);
+  margin: 18px 0 10px;
+  font-weight: 700;
+}
+
+.orion-card label {
+  display: block;
+  font-size: 12px;
+  color: var(--orion-muted);
+  margin: 12px 0 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.orion-card input,
+.orion-card select,
+.orion-card textarea {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--orion-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--orion-text);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+}
+
+.orion-card input:focus,
+.orion-card select:focus,
+.orion-card textarea:focus {
+  border-color: var(--orion-blue);
+}
+
+.orion-btn-primary {
+  background: linear-gradient(135deg, var(--orion-blue), var(--orion-purple));
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 11px 22px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 16px;
+  font-size: 14px;
+  transition: transform 0.12s, box-shadow 0.15s;
+}
+.orion-btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 30px -10px color-mix(in oklab, var(--orion-blue) 50%, transparent);
+}
+.orion-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.orion-tag {
+  display: inline-block;
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  margin: 2px;
+  background: rgba(0, 212, 255, 0.1);
+  color: var(--orion-blue);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+}
+.orion-tag.sel {
+  background: rgba(6, 255, 165, 0.15);
+  color: var(--orion-cyan);
+  border-color: rgba(6, 255, 165, 0.3);
+}
+
+.orion-progress {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 14px 0;
+}
+.orion-progress > div {
+  height: 100%;
+  background: linear-gradient(90deg, var(--orion-blue), var(--orion-cyan));
+  transition: width 0.4s;
+}
+
+.orion-muted { color: var(--orion-muted); font-size: 13px; }
+
+.orion-src {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--orion-border);
+  border-radius: 10px;
+  margin: 8px 0;
+  background: rgba(0, 0, 0, 0.15);
+}
+.orion-src .score {
+  font-weight: 700;
+  color: var(--orion-cyan);
+  min-width: 48px;
+  font-variant-numeric: tabular-nums;
+}
+.orion-src a { color: var(--orion-cyan); text-decoration: none; }
+.orion-src a:hover { text-decoration: underline; }
+
+.orion-error {
+  color: var(--orion-red);
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+/* Pure-CSS starfield (no extra dependencies) */
+.orion-particles {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 20% 10%, rgba(139, 92, 246, 0.18), transparent 50%),
+    radial-gradient(ellipse at 80% 90%, rgba(0, 212, 255, 0.15), transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(6, 255, 165, 0.06), transparent 60%);
+}
+.orion-particles::before,
+.orion-particles::after {
+  content: "";
+  position: absolute;
+  inset: -50%;
+  background-image:
+    radial-gradient(1px 1px at 25% 30%, #fff, transparent),
+    radial-gradient(1px 1px at 70% 70%, #00d4ff, transparent),
+    radial-gradient(1.5px 1.5px at 40% 80%, #fff, transparent),
+    radial-gradient(1px 1px at 85% 20%, #8b5cf6, transparent),
+    radial-gradient(1px 1px at 10% 60%, #06ffa5, transparent),
+    radial-gradient(1.5px 1.5px at 60% 40%, #fff, transparent),
+    radial-gradient(1px 1px at 90% 50%, #fff, transparent),
+    radial-gradient(1px 1px at 30% 85%, #00d4ff, transparent);
+  background-size: 280px 280px;
+  opacity: 0.55;
+  animation: orion-drift 120s linear infinite;
+}
+.orion-particles::after {
+  background-size: 420px 420px;
+  opacity: 0.35;
+  animation-duration: 200s;
+  animation-direction: reverse;
+}
+@keyframes orion-drift {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-280px, -280px, 0); }
+}
