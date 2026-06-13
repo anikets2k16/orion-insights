@@ -241,6 +241,7 @@ export const analyseAndSynthesize = createServerFn({ method: "POST" })
       schema: Schema,
       experimental_repairText: repairStructuredJson,
       temperature: 0,
+      maxOutputTokens: 8192,
       system:
         "You are ORION, a multi-agent research synthesiser. Produce a rigorous, evidence-grounded " +
         "report from the curated sources only. Every insight and contradiction must cite the " +
