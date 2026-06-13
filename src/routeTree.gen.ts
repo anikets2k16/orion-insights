@@ -10,19 +10,14 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AgentsRouteImport } from './routes/agents'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
-import { Route as SessionSidRouteImport } from './routes/session.$sid'
+import { Route as AuthenticatedAgentsRouteImport } from './routes/_authenticated/agents'
+import { Route as AuthenticatedSessionSidRouteImport } from './routes/_authenticated/session.$sid'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AgentsRoute = AgentsRouteImport.update({
-  id: '/agents',
-  path: '/agents',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -34,51 +29,54 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const SessionSidRoute = SessionSidRouteImport.update({
+const AuthenticatedAgentsRoute = AuthenticatedAgentsRouteImport.update({
+  id: '/agents',
+  path: '/agents',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSessionSidRoute = AuthenticatedSessionSidRouteImport.update({
   id: '/session/$sid',
   path: '/session/$sid',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
-  '/agents': typeof AgentsRoute
   '/auth': typeof AuthRoute
-  '/session/$sid': typeof SessionSidRoute
+  '/agents': typeof AuthenticatedAgentsRoute
+  '/session/$sid': typeof AuthenticatedSessionSidRoute
 }
 export interface FileRoutesByTo {
-  '/agents': typeof AgentsRoute
   '/auth': typeof AuthRoute
-  '/session/$sid': typeof SessionSidRoute
+  '/agents': typeof AuthenticatedAgentsRoute
   '/': typeof AuthenticatedIndexRoute
+  '/session/$sid': typeof AuthenticatedSessionSidRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
-  '/agents': typeof AgentsRoute
   '/auth': typeof AuthRoute
-  '/session/$sid': typeof SessionSidRoute
+  '/_authenticated/agents': typeof AuthenticatedAgentsRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/session/$sid': typeof AuthenticatedSessionSidRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/agents' | '/auth' | '/session/$sid'
+  fullPaths: '/' | '/auth' | '/agents' | '/session/$sid'
   fileRoutesByTo: FileRoutesByTo
-  to: '/agents' | '/auth' | '/session/$sid' | '/'
+  to: '/auth' | '/agents' | '/' | '/session/$sid'
   id:
     | '__root__'
     | '/_authenticated'
-    | '/agents'
     | '/auth'
-    | '/session/$sid'
+    | '/_authenticated/agents'
     | '/_authenticated/'
+    | '/_authenticated/session/$sid'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
-  AgentsRoute: typeof AgentsRoute
   AuthRoute: typeof AuthRoute
-  SessionSidRoute: typeof SessionSidRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -88,13 +86,6 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/agents': {
-      id: '/agents'
-      path: '/agents'
-      fullPath: '/agents'
-      preLoaderRoute: typeof AgentsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -111,22 +102,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/session/$sid': {
-      id: '/session/$sid'
+    '/_authenticated/agents': {
+      id: '/_authenticated/agents'
+      path: '/agents'
+      fullPath: '/agents'
+      preLoaderRoute: typeof AuthenticatedAgentsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/session/$sid': {
+      id: '/_authenticated/session/$sid'
       path: '/session/$sid'
       fullPath: '/session/$sid'
-      preLoaderRoute: typeof SessionSidRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedSessionSidRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAgentsRoute: typeof AuthenticatedAgentsRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedSessionSidRoute: typeof AuthenticatedSessionSidRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAgentsRoute: AuthenticatedAgentsRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedSessionSidRoute: AuthenticatedSessionSidRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -134,20 +136,8 @@ const AuthenticatedRouteRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
-  AgentsRoute: AgentsRoute,
   AuthRoute: AuthRoute,
-  SessionSidRoute: SessionSidRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
