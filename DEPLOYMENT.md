@@ -1,8 +1,8 @@
 # ORION — Deployment Checklist
 
-One page, three paths. Pick local for dev, or Render + Lovable for hosted.
-Repos: backend [`orion-researcher`](https://github.com/anikets2k16/orion-researcher) ·
-frontend [`orion-frontend`](https://github.com/anikets2k16/orion-frontend).
+One page. Pick local for dev, or Render for hosted. **Single repo**
+[`orion-researcher`](https://github.com/anikets2k16/orion-researcher) — Python backend at
+the root, React frontend in `frontend/`.
 
 ---
 
@@ -28,33 +28,28 @@ make frontend                     # http://localhost:3000
 
 ---
 
-## B. Backend → Render (hosted Python)
+## B. Whole app → Render (single repo, one blueprint)
 
 - [ ] Render → **New → Blueprint** → connect `orion-researcher` (auth your GitHub if asked)
-- [ ] Render reads `render.yaml` (api + worker + redis + postgres). Fill the `sync: false` secrets:
-      `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `TAVILY_API_KEY`
-- [ ] Deploy → note the API URL, e.g. `https://orion-api.onrender.com`
-- [ ] Verify: open `https://orion-api.onrender.com/api/health` → `{"status":"ok"}`
+- [ ] Render reads `render.yaml` → creates **api + frontend (static) + worker + redis + postgres**.
+      Fill the `sync: false` secrets: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `TAVILY_API_KEY`
+- [ ] First deploy → note the API URL, e.g. `https://orion-api.onrender.com`
+- [ ] Verify API: open `https://orion-api.onrender.com/api/health` → `{"status":"ok"}`
 - [ ] (optional) CI-gated deploys: add repo secret `RENDER_DEPLOY_HOOK_URL` (a Render deploy
       hook) so the `deploy-render` job ships only after tests + the determinism gate pass.
 
 ---
 
-## C. Frontend → Lovable (hosted React)
+## C. Wire the frontend ↔ backend
 
-> Lovable hosts the React app; it does **not** run the Python backend — that's why B exists.
+- [ ] Set the **`orion-frontend`** service's **`VITE_API_URL`** = the `orion-api` URL → redeploy it
+- [ ] Set **`ORION_CORS_ORIGINS`** on **`orion-api`** = the frontend URL
+      (e.g. `https://orion-frontend.onrender.com`) → redeploy api
+- [ ] Open the frontend URL · sign up · run a research session
 
-- [ ] Lovable → **New → Import from GitHub** → select `orion-frontend`
-- [ ] Set env var **`VITE_API_URL`** = your Render API URL (no trailing slash)
-- [ ] Publish → note the Lovable site URL, e.g. `https://your-app.lovable.app`
-
----
-
-## D. Connect B ↔ C (CORS)
-
-- [ ] On the Render `orion-api` service, set **`ORION_CORS_ORIGINS`** = your Lovable URL
-      (comma-separate multiple, e.g. `https://your-app.lovable.app,http://localhost:3000`)
-- [ ] Redeploy the API · hard-refresh the Lovable app · sign up and run a research session
+> **Prefer Lovable for the frontend?** Import this repo into Lovable with
+> **root directory = `frontend`**, set `VITE_API_URL`, and add the Lovable URL to
+> `ORION_CORS_ORIGINS`. The backend still comes from B.
 
 ---
 

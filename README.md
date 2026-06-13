@@ -10,7 +10,7 @@
 
 Spec-driven, **deterministic** implementation of the ORION architecture (Hackathon 2026,
 Group 8). Real LLM calls (OpenAI/Anthropic) engineered for byte-identical reproducibility.
-Frontend (for Lovable) lives in [`orion-frontend`](https://github.com/anikets2k16/orion-frontend).
+**Single repo:** Python backend at the root, React + Three.js frontend in [`frontend/`](frontend).
 
 Built from the source docs in the parent folder (`architecture-docs.html`,
 `usage-docs.html`, `bootstrap.sh`). Every component traces to a requirement in
@@ -74,17 +74,20 @@ gate, start API/frontend/Docker, and **create + push the GitHub repo**.
 Publishing to GitHub from the console needs a one-time `gh auth login` first; then the
 "Create repo & push" button runs `gh repo create orion-researcher --private --source=. --push`.
 
-## Cloud deploy (Render backend + Lovable frontend)
-Lovable hosts React frontends, not Python — so the split is **frontend on Lovable,
-backend on Render**, joined by a URL.
+## Cloud deploy (single repo → Render)
+One `render.yaml` blueprint deploys the **whole app** from this single repo: `orion-api`
+(FastAPI) + `orion-frontend` (static build of `frontend/`) + `orion-worker` (Celery) +
+redis + postgres.
 
-- **Backend → Render:** `render.yaml` blueprint (api + worker + redis + postgres). Render →
-  New → Blueprint → pick this repo → fill the `sync: false` keys. Auto-deploys on push, or
-  CI-gated via the `deploy-render` job (set repo secret `RENDER_DEPLOY_HOOK_URL` to a Render
-  deploy hook to deploy only after tests + the determinism gate pass).
-- **Frontend → Lovable:** the standalone [`orion-frontend`](../orion-frontend) repo (React app
-  at root). Import into Lovable, set `VITE_API_URL` to the Render API URL.
-- **Connect:** add the Lovable site URL to `ORION_CORS_ORIGINS` on the Render service.
+- Render → **New → Blueprint** → pick this repo → fill the `sync: false` keys
+  (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `TAVILY_API_KEY`).
+- After the API deploys, set the frontend service's `VITE_API_URL` to the `orion-api` URL,
+  and add the frontend URL to `ORION_CORS_ORIGINS` on `orion-api`.
+- CI-gated deploys: set repo secret `RENDER_DEPLOY_HOOK_URL` so the `deploy-render` job
+  ships only after tests + the determinism gate pass.
+
+**Prefer Lovable for the frontend?** Import this repo into Lovable with **root directory =
+`frontend`** and set `VITE_API_URL` to your backend URL. See [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Tests (offline, no keys — NFR-6)
 ```bash
