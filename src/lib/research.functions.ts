@@ -101,8 +101,8 @@ export const retrieveAndScoreSources = createServerFn({ method: "POST" })
     if (raw.length === 0) return { sources: [] };
 
     const gateway = createLovableAiGatewayProvider(lovableKey);
-    // Use a stable, high-capability model for scoring
-    const model = gateway("google/gemini-1.5-pro-latest");
+    // Use the approved high-reasoning model for scoring
+    const model = gateway("google/gemini-2.5-pro");
 
     const docs = raw.map((r, i) => ({
       idx: i + 1,
@@ -191,8 +191,8 @@ export const analyseAndSynthesize = createServerFn({ method: "POST" })
     if (!lovableKey) throw new Error("LOVABLE_API_KEY is not configured");
 
     const gateway = createLovableAiGatewayProvider(lovableKey);
-    // Use a stable, high-capability model for synthesis
-    const model = gateway("google/gemini-1.5-pro-latest");
+    // Use the approved high-reasoning model for synthesis
+    const model = gateway("google/gemini-2.5-pro");
 
     const Schema = z.object({
       executive_summary: z.string().describe("3-5 sentence summary of the findings"),
