@@ -45,3 +45,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker build -t orion-api:${{ github.sha }} .
+
+  deploy-render:
+    name: Deploy backend to Render
+    needs: [test, frontend-e2e]
+    runs-on: ubuntu-latest
+    # Only deploy from main, and only if the deploy hook secret is configured.
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Trigger Render deploy (CI-gated)
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "RENDER_DEPLOY_HOOK_URL not set — skipping. Add it in repo Settings → Secrets."
+            exit 0
+          fi
+          echo "Tests passed — triggering Render deploy…"
+          curl -fsS -X POST "$HOOK" && echo "✓ Render deploy triggered"

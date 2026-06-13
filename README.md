@@ -65,6 +65,18 @@ gate, start API/frontend/Docker, and **create + push the GitHub repo**.
 Publishing to GitHub from the console needs a one-time `gh auth login` first; then the
 "Create repo & push" button runs `gh repo create orion-researcher --private --source=. --push`.
 
+## Cloud deploy (Render backend + Lovable frontend)
+Lovable hosts React frontends, not Python — so the split is **frontend on Lovable,
+backend on Render**, joined by a URL.
+
+- **Backend → Render:** `render.yaml` blueprint (api + worker + redis + postgres). Render →
+  New → Blueprint → pick this repo → fill the `sync: false` keys. Auto-deploys on push, or
+  CI-gated via the `deploy-render` job (set repo secret `RENDER_DEPLOY_HOOK_URL` to a Render
+  deploy hook to deploy only after tests + the determinism gate pass).
+- **Frontend → Lovable:** the standalone [`orion-frontend`](../orion-frontend) repo (React app
+  at root). Import into Lovable, set `VITE_API_URL` to the Render API URL.
+- **Connect:** add the Lovable site URL to `ORION_CORS_ORIGINS` on the Render service.
+
 ## Tests (offline, no keys — NFR-6)
 ```bash
 make test                 # 22 tests; provider call is patched, cache/agents/graph run real
