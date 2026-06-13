@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { generateText, Output } from "ai";
+import { generateObject } from "ai";
 import { z } from "zod";
 
 import { createLovableAiGatewayProvider } from "./ai-gateway.server";
@@ -46,6 +46,43 @@ function classifySource(url: string): Source["source_type"] {
   return "blog";
 }
 
+function extractJsonFromResponse(response: string): string | null {
+  const cleaned = response
+    .replace(/```json\s*/gi, "")
+    .replace(/```\s*/g, "")
+    .trim();
+
+  const objectStart = cleaned.indexOf("{");
+  const arrayStart = cleaned.indexOf("[");
+  const start =
+    objectStart === -1
+      ? arrayStart
+      : arrayStart === -1
+        ? objectStart
+        : Math.min(objectStart, arrayStart);
+
+  if (start === -1) return cleaned || null;
+
+  const opening = cleaned[start];
+  const closing = opening === "[" ? "]" : "}";
+  const end = cleaned.lastIndexOf(closing);
+  const candidate = (end >= start ? cleaned.slice(start, end + 1) : cleaned.slice(start))
+    .replace(/,\s*([}\]])/g, "$1")
+    .replace(/[\x00-\x1F\x7F]/g, "");
+
+  return candidate || null;
+}
+
+async function repairStructuredJson({ text }: { text: string }) {
+  return extractJsonFromResponse(text);
+}
+
+const confidenceSchema = z.coerce
+  .number()
+  .transform((value) => (value > 1 ? value / 100 : value));
+
+const citationsSchema = z.array(z.coerce.number()).catch([]);
+
 // ---------- Server fn: retrieve + score ----------
 
 const RetrieveInput = z.object({
@@ -64,6 +101,7 @@ export const retrieveAndScoreSources = createServerFn({ method: "POST" })
     if (raw.length === 0) return { sources: [] };
 
     const gateway = createLovableAiGatewayProvider(lovableKey);
+    // Use a stable, high-capability model for scoring
     const model = gateway("google/gemini-1.5-pro-latest");
 
     const docs = raw.map((r, i) => ({
@@ -76,9 +114,9 @@ export const retrieveAndScoreSources = createServerFn({ method: "POST" })
     const ScoreSchema = z.object({
       scored: z.array(
         z.object({
-          idx: z.number(),
-          confidence: z.number(),
-          rationale: z.string(),
+          idx: z.number().describe("Source index"),
+          confidence: z.coerce.number().describe("0.0-1.0 confidence score"),
+          rationale: z.string().describe("One sentence rationale"),
         }),
       ),
     });
@@ -90,14 +128,15 @@ export const retrieveAndScoreSources = createServerFn({ method: "POST" })
         "You are a critical research analyst scoring sources for a multi-agent research assistant. " +
         "Rate each source from 0.0 to 1.0 on credibility, relevance to the topic, and recency. " +
         "Be conservative: marketing blogs and SEO listicles get low scores; peer-reviewed, primary, " +
-        "or reputable journalism gets high scores. Give a one-sentence rationale per source.",
+        "or reputable journalism gets high scores. Give a one-sentence rationale per source. " +
+        "IMPORTANT: You must output a valid JSON object matching the schema. Always include the 'scored' key.",
       prompt:
         `Topic: ${data.topic}\nPersona: ${data.persona}\n\n` +
         `Sources:\n` +
         docs.map((d) => `[${d.idx}] ${d.title}\n${d.url}\n${d.snippet}`).join("\n\n"),
     });
 
-    const byIdx = new Map(out.scored.map((s) => [s.idx, s]));
+    const byIdx = new Map((out?.scored ?? []).map((s) => [s.idx, s]));
     const sources: Source[] = docs
       .map((d, i) => {
         const s = byIdx.get(d.idx);
@@ -150,38 +189,39 @@ export const analyseAndSynthesize = createServerFn({ method: "POST" })
     if (!lovableKey) throw new Error("LOVABLE_API_KEY is not configured");
 
     const gateway = createLovableAiGatewayProvider(lovableKey);
+    // Use a stable, high-capability model for synthesis
     const model = gateway("google/gemini-1.5-pro-latest");
 
     const Schema = z.object({
-      executive_summary: z.string(),
+      executive_summary: z.string().describe("3-5 sentence summary of the findings"),
       analysis: z.object({
-        themes: z.array(z.string()),
-        tensions: z.array(z.string()),
-        narrative: z.string(),
+        themes: z.array(z.string()).describe("Key themes identified"),
+        tensions: z.array(z.string()).describe("Conflicts or tensions between sources"),
+        narrative: z.string().describe("Overall narrative synthesis"),
       }),
       insights: z.array(
         z.object({
-          title: z.string(),
-          summary: z.string(),
-          implications: z.string(),
-          confidence: z.number(),
-          citations: z.array(z.number()).optional(),
+          title: z.string().describe("Insight title"),
+          summary: z.string().describe("Concise summary"),
+          implications: z.string().describe("Implications for the persona"),
+          confidence: z.coerce.number().describe("0.0 to 1.0"),
+          citations: z.array(z.coerce.number()).default([]).describe("Source indices"),
         }),
-      ),
+      ).describe("3-5 key insights from sources"),
       contradictions: z.array(
         z.object({
-          claim: z.string(),
-          sides: z.string(),
-          citations: z.array(z.number()),
+          claim: z.string().describe("The conflicting claim"),
+          sides: z.string().describe("The different perspectives"),
+          citations: z.array(z.coerce.number()).default([]).describe("Source indices"),
         }),
-      ),
+      ).default([]).describe("Significant disagreements found between sources"),
       gaps: z.array(
         z.object({
-          question: z.string(),
-          why_it_matters: z.string(),
-          suggested_next_step: z.string(),
+          question: z.string().describe("The open question"),
+          why_it_matters: z.string().describe("Why this gap is important"),
+          suggested_next_step: z.string().describe("Recommended next research step"),
         }),
-      ),
+      ).default([]).describe("Areas where more information is needed"),
     });
 
     const corpus = data.sources
@@ -198,7 +238,10 @@ export const analyseAndSynthesize = createServerFn({ method: "POST" })
         "You are ORION, a multi-agent research synthesiser. Produce a rigorous, evidence-grounded " +
         "report from the curated sources only. Every insight and contradiction must cite the " +
         "source numbers in brackets. Confidence is 0.0-1.0. Highlight genuine disagreement, not " +
-        "stylistic differences. Tailor tone to the persona.",
+        "stylistic differences. Tailor tone to the persona. " +
+        "IMPORTANT: You MUST return a valid JSON object matching the provided schema. " +
+        "Always include all keys (executive_summary, analysis, insights, contradictions, gaps) " +
+        "even if no content is found (return an empty array).",
       prompt:
         `Topic: ${data.topic}\nPersona: ${data.persona}\nThreshold: ${data.threshold}\n\n` +
         `Curated sources:\n${corpus}\n\n` +
@@ -207,7 +250,7 @@ export const analyseAndSynthesize = createServerFn({ method: "POST" })
     });
 
     // Clamp confidences and ensure citations array exists.
-    const insights: Insight[] = out.insights.map((i) => ({
+    const insights: Insight[] = (out.insights || []).map((i) => ({
       ...i,
       confidence: Math.max(0, Math.min(1, Number(i.confidence) || 0)),
       citations: i.citations ?? [],
@@ -217,7 +260,7 @@ export const analyseAndSynthesize = createServerFn({ method: "POST" })
       executive_summary: out.executive_summary,
       analysis: out.analysis,
       insights,
-      contradictions: out.contradictions as Contradiction[],
-      gaps: out.gaps as Gap[],
+      contradictions: (out.contradictions || []) as Contradiction[],
+      gaps: (out.gaps || []) as Gap[],
     };
   });
