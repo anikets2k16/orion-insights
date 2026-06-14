@@ -126,26 +126,48 @@ function SessionPage() {
         `;
       }
 
-      const response = await fetch("/api/public/report-pdf", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ html, topic }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to generate PDF");
-      }
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-
       if (popup && !popup.closed) {
-        popup.location.replace(url);
-      } else {
-        window.open(url, "_blank", "noopener,noreferrer");
-      }
+        const form = popup.document.createElement("form");
+        form.method = "POST";
+        form.action = "/api/public/report-pdf";
 
-      window.setTimeout(() => URL.revokeObjectURL(url), 120000);
+        const htmlInput = popup.document.createElement("input");
+        htmlInput.type = "hidden";
+        htmlInput.name = "html";
+        htmlInput.value = html;
+
+        const topicInput = popup.document.createElement("input");
+        topicInput.type = "hidden";
+        topicInput.name = "topic";
+        topicInput.value = topic;
+
+        form.appendChild(htmlInput);
+        form.appendChild(topicInput);
+        popup.document.body.appendChild(form);
+        form.submit();
+      } else {
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = "/api/public/report-pdf";
+        form.target = "_blank";
+        form.style.display = "none";
+
+        const htmlInput = document.createElement("input");
+        htmlInput.type = "hidden";
+        htmlInput.name = "html";
+        htmlInput.value = html;
+
+        const topicInput = document.createElement("input");
+        topicInput.type = "hidden";
+        topicInput.name = "topic";
+        topicInput.value = topic;
+
+        form.appendChild(htmlInput);
+        form.appendChild(topicInput);
+        document.body.appendChild(form);
+        form.submit();
+        form.remove();
+      }
     } catch {
       if (popup && !popup.closed) {
         popup.close();
