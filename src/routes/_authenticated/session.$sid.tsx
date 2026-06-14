@@ -455,24 +455,28 @@ function htmlToMarkdown(html: string): string {
   return walk(root).replace(/\n{3,}/g, "\n\n").trim();
 }
 
-async function downloadPdf(html: string, topic: string) {
-  const { default: html2pdf } = await import("html2pdf.js");
-  const container = document.createElement("div");
-  container.style.padding = "24px";
-  container.style.fontFamily = "system-ui, -apple-system, sans-serif";
-  container.style.color = "#111";
-  container.style.background = "#fff";
-  container.innerHTML = `<h1 style="margin-top:0">${escapeHtml(topic)}</h1>${html}`;
-  await html2pdf()
-    .set({
-      margin: 10,
-      filename: `${safeFilename(topic)}.pdf`,
-      image: { type: "jpeg", quality: 0.95 },
-      html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
-      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-    } as any)
-    .from(container)
-    .save();
+function downloadPdf(html: string, topic: string) {
+  const win = window.open("", "_blank", "width=900,height=1000");
+  if (!win) {
+    alert("Please allow pop-ups to download the PDF.");
+    return;
+  }
+  win.document.write(`<!doctype html>
+<html><head><meta charset="utf-8"><title>${escapeHtml(topic)}</title>
+<style>
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#111;padding:32px;line-height:1.55;}
+  h1,h2,h3{color:#0b1f3a;margin-top:1.4em;}
+  h1{font-size:22pt;margin-top:0;}
+  table{border-collapse:collapse;width:100%;margin:12px 0;}
+  th,td{border:1px solid #ddd;padding:6px 8px;font-size:11pt;text-align:left;}
+  a{color:#1d4ed8;text-decoration:none;}
+  blockquote{border-left:3px solid #ccc;margin:0;padding:4px 12px;color:#444;}
+  @media print{ @page{ margin:14mm; } }
+</style></head>
+<body><h1>${escapeHtml(topic)}</h1>${html}
+<script>window.onload=function(){setTimeout(function(){window.print();},250);};</script>
+</body></html>`);
+  win.document.close();
 }
 
 function triggerDownload(blob: Blob, filename: string) {
