@@ -137,18 +137,6 @@ function SessionPage() {
           <h1 className="orion-grad">Saved Report</h1>
           <div className="orion-report-frame" dangerouslySetInnerHTML={{ __html: sanitizeReportHtml(savedHtml) }} />
           {error && <p style={{ marginTop: 14, color: "#ff7a90" }}>{error}</p>}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-            <button
-              className="orion-btn-primary"
-              onClick={() => {
-                void handleReportDownload(sanitizeReportHtml(savedHtml), `report-${sid}`);
-              }}
-              disabled={isDownloading}
-              style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-            >
-              <Download size={14} /> {isDownloading ? "Preparing PDF…" : "Open PDF"}
-            </button>
-          </div>
         </section>
       </main>
     );
@@ -381,18 +369,6 @@ function SessionPage() {
         {reportHtml && (
           <SectionCard key="report" icon={<FileText size={16} />} title="Report" delay={0.2}>
             <div className="orion-report-frame" dangerouslySetInnerHTML={{ __html: reportHtml }} />
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-              <button
-                className="orion-btn-primary"
-                onClick={() => {
-                  void handleReportDownload(reportHtml, session.topic);
-                }}
-                disabled={isDownloading}
-                style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-              >
-                <Download size={14} /> {isDownloading ? "Preparing PDF…" : "Open PDF"}
-              </button>
-            </div>
           </SectionCard>
         )}
       </AnimatePresence>
