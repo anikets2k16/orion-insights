@@ -29,6 +29,8 @@ import {
   SectionCard,
 } from "@/components/research/ResultPrimitives";
 
+type JsPDFConstructor = (typeof import("jspdf"))["jsPDF"];
+
 const supabase = _supabase as unknown as { from: (table: string) => any };
 
 export const Route = createFileRoute("/_authenticated/session/$sid")({
@@ -66,6 +68,7 @@ function SessionPage() {
   const [savedHtml, setSavedHtml] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const mirroredRef = useRef(false);
+  const jsPdfRef = useRef<JsPDFConstructor | null>(null);
   const profile = useProfile();
 
   useEffect(() => {
@@ -105,6 +108,22 @@ function SessionPage() {
       .eq("id", sid);
   }, [session, sid]);
 
+  useEffect(() => {
+    let cancelled = false;
+    import("jspdf")
+      .then(({ jsPDF }) => {
+        if (cancelled) return;
+        jsPdfRef.current = jsPDF;
+      })
+      .catch(() => {
+        if (cancelled) return;
+        jsPdfRef.current = null;
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   function submitCuration() {
     if (!session?.sources) return;
     const urls = Object.keys(selected).filter((u) => selected[u]);
@@ -133,7 +152,24 @@ function SessionPage() {
       <main>
         <section className="orion-card">
           <h1 className="orion-grad">Saved Report</h1>
-          <div dangerouslySetInnerHTML={{ __html: sanitizeReportHtml(savedHtml) }} />
+          <div className="orion-report-frame" dangerouslySetInnerHTML={{ __html: sanitizeReportHtml(savedHtml) }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+            <button
+              className="orion-btn-primary"
+              onClick={() => {
+                const JsPDF = jsPdfRef.current;
+                if (!JsPDF) {
+                  setError("PDF is still preparing. Please try again in a moment.");
+                  return;
+                }
+                setError(null);
+                downloadPdf(sanitizeReportHtml(savedHtml), `report-${sid}`, JsPDF);
+              }}
+              style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+            >
+              <Download size={14} /> Download PDF
+            </button>
+          </div>
         </section>
       </main>
     );
@@ -365,16 +401,24 @@ function SessionPage() {
 
         {reportHtml && (
           <SectionCard key="report" icon={<FileText size={16} />} title="Report" delay={0.2}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+            <div className="orion-report-frame" dangerouslySetInnerHTML={{ __html: reportHtml }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
               <button
                 className="orion-btn-primary"
-                onClick={() => downloadPdf(reportHtml, session.topic)}
+                onClick={() => {
+                  const JsPDF = jsPdfRef.current;
+                  if (!JsPDF) {
+                    setError("PDF is still preparing. Please try again in a moment.");
+                    return;
+                  }
+                  setError(null);
+                  downloadPdf(reportHtml, session.topic, JsPDF);
+                }}
                 style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
               >
                 <Download size={14} /> Download PDF
               </button>
             </div>
-            <div className="orion-report-frame" dangerouslySetInnerHTML={{ __html: reportHtml }} />
           </SectionCard>
         )}
       </AnimatePresence>
@@ -394,9 +438,8 @@ function sanitizeReportHtml(html: string) {
   return html.replace(/<p><em>Confidence threshold[^<]*<\/em><\/p>/i, "").trim();
 }
 
-async function downloadPdf(html: string, topic: string) {
-  const { jsPDF } = await import("jspdf");
-  const pdf = new jsPDF({ unit: "pt", format: "a4" });
+function downloadPdf(html: string, topic: string, JsPDF: JsPDFConstructor) {
+  const pdf = new JsPDF({ unit: "pt", format: "a4" });
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
   const margin = 40;
