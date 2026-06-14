@@ -8,6 +8,7 @@ import {
   Lightbulb,
   Scale,
   Sparkles,
+  BookOpen,
 } from "lucide-react";
 import { supabase as _supabase } from "@/lib/supabase-browser";
 import {
