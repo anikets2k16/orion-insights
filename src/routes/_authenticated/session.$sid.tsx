@@ -22,7 +22,6 @@ import {
 import { PipelineStepper } from "@/components/PipelineStepper";
 import { useProfile } from "@/lib/profile";
 import { Download } from "lucide-react";
-import TurndownService from "turndown";
 import {
   CitationChips,
   ConfidenceBar,
@@ -397,10 +396,60 @@ function safeFilename(topic: string) {
 }
 
 function downloadMarkdown(html: string, topic: string) {
-  const td = new TurndownService({ headingStyle: "atx", codeBlockStyle: "fenced" });
-  const md = td.turndown(html);
+  const md = htmlToMarkdown(html);
   const blob = new Blob([`# ${topic}\n\n${md}`], { type: "text/markdown;charset=utf-8" });
   triggerDownload(blob, `${safeFilename(topic)}.md`);
+}
+
+function htmlToMarkdown(html: string): string {
+  const doc = new DOMParser().parseFromString(`<div>${html}</div>`, "text/html");
+  const root = doc.body.firstChild as HTMLElement | null;
+  if (!root) return "";
+  const walk = (node: Node): string => {
+    if (node.nodeType === Node.TEXT_NODE) return (node.textContent ?? "").replace(/\s+/g, " ");
+    if (node.nodeType !== Node.ELEMENT_NODE) return "";
+    const el = node as HTMLElement;
+    const kids = () => Array.from(el.childNodes).map(walk).join("");
+    const tag = el.tagName.toLowerCase();
+    switch (tag) {
+      case "h1": return `\n\n# ${kids()}\n\n`;
+      case "h2": return `\n\n## ${kids()}\n\n`;
+      case "h3": return `\n\n### ${kids()}\n\n`;
+      case "h4": return `\n\n#### ${kids()}\n\n`;
+      case "h5": case "h6": return `\n\n##### ${kids()}\n\n`;
+      case "p": case "div": case "section": case "article": return `\n\n${kids()}\n\n`;
+      case "br": return "\n";
+      case "hr": return "\n\n---\n\n";
+      case "strong": case "b": return `**${kids()}**`;
+      case "em": case "i": return `*${kids()}*`;
+      case "code": return `\`${kids()}\``;
+      case "pre": return `\n\n\`\`\`\n${el.textContent ?? ""}\n\`\`\`\n\n`;
+      case "blockquote": return `\n\n> ${kids().trim().replace(/\n/g, "\n> ")}\n\n`;
+      case "a": {
+        const href = el.getAttribute("href") ?? "";
+        return `[${kids()}](${href})`;
+      }
+      case "img": {
+        const src = el.getAttribute("src") ?? "";
+        const alt = el.getAttribute("alt") ?? "";
+        return `![${alt}](${src})`;
+      }
+      case "ul": return `\n\n${Array.from(el.children).map((li) => `- ${walk(li).trim()}`).join("\n")}\n\n`;
+      case "ol": return `\n\n${Array.from(el.children).map((li, i) => `${i + 1}. ${walk(li).trim()}`).join("\n")}\n\n`;
+      case "li": return kids();
+      case "table": {
+        const rows = Array.from(el.querySelectorAll("tr"));
+        if (!rows.length) return "";
+        const cells = (tr: Element) => Array.from(tr.children).map((c) => walk(c).trim().replace(/\|/g, "\\|"));
+        const header = cells(rows[0]);
+        const body = rows.slice(1).map(cells);
+        const sep = header.map(() => "---");
+        return `\n\n| ${header.join(" | ")} |\n| ${sep.join(" | ")} |\n${body.map((r) => `| ${r.join(" | ")} |`).join("\n")}\n\n`;
+      }
+      default: return kids();
+    }
+  };
+  return walk(root).replace(/\n{3,}/g, "\n\n").trim();
 }
 
 async function downloadPdf(html: string, topic: string) {
