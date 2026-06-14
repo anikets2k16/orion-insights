@@ -113,6 +113,7 @@ function SessionPage() {
     setError(null);
     setIsDownloading(true);
 
+    const pdfEndpoint = `${window.location.origin}/api/public/report-pdf`;
     const popup = window.open("", "_blank");
 
     try {
@@ -129,7 +130,7 @@ function SessionPage() {
       if (popup && !popup.closed) {
         const form = popup.document.createElement("form");
         form.method = "POST";
-        form.action = "/api/public/report-pdf";
+        form.action = pdfEndpoint;
 
         const htmlInput = popup.document.createElement("input");
         htmlInput.type = "hidden";
@@ -148,7 +149,7 @@ function SessionPage() {
       } else {
         const form = document.createElement("form");
         form.method = "POST";
-        form.action = "/api/public/report-pdf";
+        form.action = pdfEndpoint;
         form.target = "_blank";
         form.style.display = "none";
 
