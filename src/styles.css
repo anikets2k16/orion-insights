@@ -735,6 +735,92 @@ html, body {
   margin: 0 auto;
   line-height: 1.7;
 }
+.orion-report-frame,
+.orion-report-frame p,
+.orion-report-frame li,
+.orion-report-frame span {
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  color: var(--orion-text);
+  font-size: 14.5px;
+}
+.orion-report-frame h1,
+.orion-report-frame h2,
+.orion-report-frame h3,
+.orion-report-frame h4 {
+  font-family: inherit;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin: 22px 0 10px;
+  color: var(--orion-cyan);
+  text-transform: uppercase;
+  font-size: 12px;
+}
+.orion-report-frame h1 { font-size: 20px; color: var(--orion-text); text-transform: none; letter-spacing: 0; margin-top: 0; }
+.orion-report-frame h2 { font-size: 13px; }
+.orion-report-frame h3 { font-size: 12px; color: var(--orion-blue); }
+.orion-report-frame p { margin: 0 0 12px; line-height: 1.65; }
+.orion-report-frame ul,
+.orion-report-frame ol { padding-left: 20px; margin: 0 0 14px; }
+.orion-report-frame li { margin: 4px 0; }
+.orion-report-frame a { color: var(--orion-cyan); text-decoration: none; }
+.orion-report-frame a:hover { text-decoration: underline; }
+.orion-report-frame em,
+.orion-report-frame i { color: var(--orion-muted); font-style: italic; }
+.orion-report-frame strong { color: var(--orion-text); font-weight: 700; }
+.orion-report-frame hr {
+  border: none;
+  border-top: 1px dashed var(--orion-border);
+  margin: 18px 0;
+}
+.orion-report-frame blockquote {
+  margin: 14px 0;
+  padding: 10px 14px;
+  border-left: 3px solid var(--orion-blue);
+  background: rgba(0, 212, 255, 0.05);
+  border-radius: 0 8px 8px 0;
+  color: var(--orion-text);
+}
+.orion-report-frame code {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--orion-border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 12.5px;
+  color: var(--orion-cyan);
+}
+
+/* ── Theme overrides (light) ─────────────────────────────────────── */
+html.light {
+  --orion-bg: #f6f7fb;
+  --orion-card: rgba(15, 23, 42, 0.04);
+  --orion-border: rgba(15, 23, 42, 0.12);
+  --orion-text: #0f172a;
+  --orion-muted: #475569;
+  --orion-blue: #0284c7;
+  --orion-purple: #7c3aed;
+  --orion-cyan: #059669;
+  --orion-violet: #7c3aed;
+  --orion-success: #059669;
+  --orion-warn: #b45309;
+  --orion-danger: #dc2626;
+}
+html.light body {
+  background: var(--orion-bg);
+  color: var(--orion-text);
+}
+html.light .orion-particles { opacity: 0.25; mix-blend-mode: multiply; }
+html.light .orion-card input,
+html.light .orion-card select,
+html.light .orion-card textarea,
+html.light .orion-src {
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--orion-text);
+}
+html.light .orion-insight-card,
+html.light .orion-meta-card {
+  background: rgba(255, 255, 255, 0.7);
+}
 
 @media (prefers-reduced-motion: reduce) {
   .orion-progress > div,
