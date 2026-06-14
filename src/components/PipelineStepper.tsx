@@ -16,6 +16,20 @@ const PHASE_COPY: Record<Phase, { running: string; done: string }> = {
   report: { running: "Composing report…", done: "Report ready" },
 };
 
+const PHASE_SHORT: Record<Phase, string> = {
+  intake: "intake",
+  clarify: "clarify",
+  retrieve: "retrieve",
+  score: "score",
+  analyse: "analyze",
+  contradict: "contrast",
+  insight: "insight",
+  gaps: "gaps",
+  deepen: "deepen",
+  guardrail: "guard",
+  report: "report",
+};
+
 interface Props {
   phase: Phase;
   progress: number;
@@ -95,7 +109,7 @@ export function PipelineStepper({ phase, progress, status }: Props) {
                     />
                   )}
                 </div>
-                <span className={`orion-node-label ${labelCls}`}>{p}</span>
+                <span className={`orion-node-label ${labelCls}`}>{PHASE_SHORT[p] ?? p}</span>
               </div>
             );
           })}
