@@ -204,11 +204,16 @@ export const analyseAndSynthesize = createServerFn({ method: "POST" })
       citations: i.citations ?? [],
     }));
 
-    return {
-      executive_summary: out.executive_summary ?? "",
-      analysis,
-      insights,
-      contradictions: (out.contradictions || []) as Contradiction[],
-      gaps: (out.gaps || []) as Gap[],
-    };
+    // Sanitize through JSON to strip undefined/non-serializable values that
+    // crash seroval ("Cannot read properties of undefined (reading 't')")
+    // when TanStack serializes the server-fn response.
+    return JSON.parse(
+      JSON.stringify({
+        executive_summary: out.executive_summary ?? "",
+        analysis,
+        insights,
+        contradictions: (out.contradictions || []) as Contradiction[],
+        gaps: (out.gaps || []) as Gap[],
+      }),
+    ) as SynthesisOutput;
   });
