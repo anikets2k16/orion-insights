@@ -388,96 +388,25 @@ function safeFilename(topic: string) {
     .slice(0, 60) || "orion-report";
 }
 
-function downloadMarkdown(html: string, topic: string) {
-  const md = htmlToMarkdown(html);
-  const blob = new Blob([`# ${topic}\n\n${md}`], { type: "text/markdown;charset=utf-8" });
-  triggerDownload(blob, `${safeFilename(topic)}.md`);
-}
-
-function htmlToMarkdown(html: string): string {
-  const doc = new DOMParser().parseFromString(`<div>${html}</div>`, "text/html");
-  const root = doc.body.firstChild as HTMLElement | null;
-  if (!root) return "";
-  const walk = (node: Node): string => {
-    if (node.nodeType === Node.TEXT_NODE) return (node.textContent ?? "").replace(/\s+/g, " ");
-    if (node.nodeType !== Node.ELEMENT_NODE) return "";
-    const el = node as HTMLElement;
-    const kids = () => Array.from(el.childNodes).map(walk).join("");
-    const tag = el.tagName.toLowerCase();
-    switch (tag) {
-      case "h1": return `\n\n# ${kids()}\n\n`;
-      case "h2": return `\n\n## ${kids()}\n\n`;
-      case "h3": return `\n\n### ${kids()}\n\n`;
-      case "h4": return `\n\n#### ${kids()}\n\n`;
-      case "h5": case "h6": return `\n\n##### ${kids()}\n\n`;
-      case "p": case "div": case "section": case "article": return `\n\n${kids()}\n\n`;
-      case "br": return "\n";
-      case "hr": return "\n\n---\n\n";
-      case "strong": case "b": return `**${kids()}**`;
-      case "em": case "i": return `*${kids()}*`;
-      case "code": return `\`${kids()}\``;
-      case "pre": return `\n\n\`\`\`\n${el.textContent ?? ""}\n\`\`\`\n\n`;
-      case "blockquote": return `\n\n> ${kids().trim().replace(/\n/g, "\n> ")}\n\n`;
-      case "a": {
-        const href = el.getAttribute("href") ?? "";
-        return `[${kids()}](${href})`;
-      }
-      case "img": {
-        const src = el.getAttribute("src") ?? "";
-        const alt = el.getAttribute("alt") ?? "";
-        return `![${alt}](${src})`;
-      }
-      case "ul": return `\n\n${Array.from(el.children).map((li) => `- ${walk(li).trim()}`).join("\n")}\n\n`;
-      case "ol": return `\n\n${Array.from(el.children).map((li, i) => `${i + 1}. ${walk(li).trim()}`).join("\n")}\n\n`;
-      case "li": return kids();
-      case "table": {
-        const rows = Array.from(el.querySelectorAll("tr"));
-        if (!rows.length) return "";
-        const cells = (tr: Element) => Array.from(tr.children).map((c) => walk(c).trim().replace(/\|/g, "\\|"));
-        const header = cells(rows[0]);
-        const body = rows.slice(1).map(cells);
-        const sep = header.map(() => "---");
-        return `\n\n| ${header.join(" | ")} |\n| ${sep.join(" | ")} |\n${body.map((r) => `| ${r.join(" | ")} |`).join("\n")}\n\n`;
-      }
-      default: return kids();
-    }
-  };
-  return walk(root).replace(/\n{3,}/g, "\n\n").trim();
-}
-
-function downloadPdf(html: string, topic: string) {
-  const win = window.open("", "_blank", "width=900,height=1000");
-  if (!win) {
-    alert("Please allow pop-ups to download the PDF.");
-    return;
+async function downloadPdf(html: string, topic: string) {
+  const { jsPDF } = await import("jspdf");
+  const container = document.createElement("div");
+  container.style.cssText =
+    "position:fixed;left:-10000px;top:0;width:780px;padding:32px;background:#fff;color:#111;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;line-height:1.55;";
+  container.innerHTML = `<h1 style="margin:0 0 16px;font-size:22pt;color:#0b1f3a;">${escapeHtml(topic)}</h1>${html}`;
+  document.body.appendChild(container);
+  try {
+    const pdf = new jsPDF({ unit: "pt", format: "a4" });
+    await pdf.html(container, {
+      callback: (doc) => doc.save(`${safeFilename(topic)}.pdf`),
+      margin: [32, 32, 32, 32],
+      autoPaging: "text",
+      width: 531,
+      windowWidth: 780,
+    });
+  } finally {
+    document.body.removeChild(container);
   }
-  win.document.write(`<!doctype html>
-<html><head><meta charset="utf-8"><title>${escapeHtml(topic)}</title>
-<style>
-  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#111;padding:32px;line-height:1.55;}
-  h1,h2,h3{color:#0b1f3a;margin-top:1.4em;}
-  h1{font-size:22pt;margin-top:0;}
-  table{border-collapse:collapse;width:100%;margin:12px 0;}
-  th,td{border:1px solid #ddd;padding:6px 8px;font-size:11pt;text-align:left;}
-  a{color:#1d4ed8;text-decoration:none;}
-  blockquote{border-left:3px solid #ccc;margin:0;padding:4px 12px;color:#444;}
-  @media print{ @page{ margin:14mm; } }
-</style></head>
-<body><h1>${escapeHtml(topic)}</h1>${html}
-<script>window.onload=function(){setTimeout(function(){window.print();},250);};</script>
-</body></html>`);
-  win.document.close();
-}
-
-function triggerDownload(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function escapeHtml(s: string) {
