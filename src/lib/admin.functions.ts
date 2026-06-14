@@ -22,23 +22,7 @@ async function assertAdmin(supabase: any, userId: string) {
     .eq("role", "admin")
     .maybeSingle();
   if (error) throw new Error(error.message);
-  if (!data) {
-    // Bootstrap: allow self-promotion only if NO admins exist anywhere.
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { count, error: cErr } = await supabaseAdmin
-      .from("user_roles")
-      .select("id", { count: "exact", head: true })
-      .eq("role", "admin");
-    if (cErr) throw new Error(cErr.message);
-    if ((count ?? 0) === 0) {
-      const { error: insErr } = await supabaseAdmin
-        .from("user_roles")
-        .insert({ user_id: userId, role: "admin" });
-      if (insErr) throw new Error(insErr.message);
-      return;
-    }
-    throw new Error("Forbidden: admin only");
-  }
+  if (!data) throw new Error("Forbidden: admin only");
 }
 
 export const checkIsAdmin = createServerFn({ method: "GET" })
@@ -51,12 +35,7 @@ export const checkIsAdmin = createServerFn({ method: "GET" })
       .eq("role", "admin")
       .maybeSingle();
     if (data) return { isAdmin: true, bootstrapAvailable: false };
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { count } = await supabaseAdmin
-      .from("user_roles")
-      .select("id", { count: "exact", head: true })
-      .eq("role", "admin");
-    return { isAdmin: false, bootstrapAvailable: (count ?? 0) === 0 };
+    return { isAdmin: false, bootstrapAvailable: false };
   });
 
 export const listAllUsers = createServerFn({ method: "GET" })

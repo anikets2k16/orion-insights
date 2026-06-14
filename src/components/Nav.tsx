@@ -49,7 +49,7 @@ export function Nav() {
             <Link to="/profile" activeProps={{ className: "active" }}>
               Profile
             </Link>
-            {(adminQ.data?.isAdmin || adminQ.data?.bootstrapAvailable) && (
+            {adminQ.data?.isAdmin && (
               <Link to="/admin" activeProps={{ className: "active" }}>
                 Admin
               </Link>
