@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase-browser";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { checkIsAdmin } from "@/lib/admin.functions";
+import orionIcon from "@/assets/orion-icon.png";
 
 export function Nav() {
   const navigate = useNavigate();
@@ -32,7 +33,14 @@ export function Nav() {
   return (
     <header>
       <Link to="/" className="orion-brand orion-grad" style={{ textDecoration: "none" }}>
-        ORION
+        <img
+          src={orionIcon}
+          alt=""
+          width={32}
+          height={32}
+          style={{ display: "inline-block", verticalAlign: "middle", marginRight: 8 }}
+        />
+        <span style={{ verticalAlign: "middle" }}>ORION</span>
       </Link>
       <nav className="orion-nav" aria-label="Primary">
         {email ? (
