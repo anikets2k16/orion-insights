@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { startResearch, type Persona } from "../../lib/research";
+import { startResearch } from "../../lib/research";
+import type { Persona } from "../../lib/research.types";
 import { supabase as _supabase } from "@/lib/supabase-browser";
 import { useProfile } from "@/lib/profile";
 
