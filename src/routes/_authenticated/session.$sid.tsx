@@ -213,11 +213,7 @@ function SessionPage() {
                   checked={!!selected[s.url]}
                   onChange={(e) => setSelected({ ...selected, [s.url]: e.target.checked })}
                 />
-                {s.citation != null && (
-                  <span className="orion-muted" style={{ marginRight: 6 }}>[{s.citation}]</span>
-                )}
-                <a href={s.url} target="_blank" rel="noreferrer">{s.title}</a>{" "}
-                <SourceTypeChip type={s.source_type} />
+                <a href={s.url} target="_blank" rel="noreferrer">{s.title}</a>
                 {s.rationale && (
                   <div className="orion-muted" style={{ marginTop: 4, fontSize: 13 }}>{s.rationale}</div>
                 )}
