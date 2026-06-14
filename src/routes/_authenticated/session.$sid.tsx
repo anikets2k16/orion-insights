@@ -122,6 +122,10 @@ function SessionPage() {
     () => (session ? normalizeSessionOutputs(session) : null),
     [session],
   );
+  const reportHtml = useMemo(
+    () => (session?.reportHtml ? sanitizeReportHtml(session.reportHtml) : null),
+    [session?.reportHtml],
+  );
   void PIPELINE;
 
   if (!session && savedHtml) {
@@ -129,7 +133,7 @@ function SessionPage() {
       <main>
         <section className="orion-card">
           <h1 className="orion-grad">Saved Report</h1>
-          <div dangerouslySetInnerHTML={{ __html: savedHtml }} />
+          <div dangerouslySetInnerHTML={{ __html: sanitizeReportHtml(savedHtml) }} />
         </section>
       </main>
     );
@@ -359,18 +363,18 @@ function SessionPage() {
           </SectionCard>
         )}
 
-        {session.reportHtml && (
+        {reportHtml && (
           <SectionCard key="report" icon={<FileText size={16} />} title="Report" delay={0.2}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
               <button
                 className="orion-btn-primary"
-                onClick={() => downloadPdf(session.reportHtml!, session.topic)}
+                onClick={() => downloadPdf(reportHtml, session.topic)}
                 style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
               >
                 <Download size={14} /> Download PDF
               </button>
             </div>
-            <div className="orion-report-frame" dangerouslySetInnerHTML={{ __html: session.reportHtml }} />
+            <div className="orion-report-frame" dangerouslySetInnerHTML={{ __html: reportHtml }} />
           </SectionCard>
         )}
       </AnimatePresence>
@@ -384,6 +388,10 @@ function safeFilename(topic: string) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 60) || "orion-report";
+}
+
+function sanitizeReportHtml(html: string) {
+  return html.replace(/<p><em>Confidence threshold[^<]*<\/em><\/p>/i, "").trim();
 }
 
 async function downloadPdf(html: string, topic: string) {
@@ -443,7 +451,15 @@ async function downloadPdf(html: string, topic: string) {
     }
   }
 
-  pdf.save(`${safeFilename(topic)}.pdf`);
+  const blob = pdf.output("blob");
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${safeFilename(topic)}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function escapeHtml(s: string) {

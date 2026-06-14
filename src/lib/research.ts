@@ -452,7 +452,6 @@ function renderReportHtml(r: Report): string {
   });
   return `
     <article style="line-height:1.6">
-      <p><em>Confidence threshold ${r.threshold.toFixed(2)} · ${r.sources.length} sources</em></p>
       <h3>Executive summary</h3>
       <p>${esc(r.executive_summary)}</p>
       <h3>Analysis</h3>
