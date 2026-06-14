@@ -32,15 +32,22 @@ export function Nav() {
 
   return (
     <header>
-      <Link to="/" className="orion-brand orion-grad" style={{ textDecoration: "none" }}>
+      <Link
+        to="/"
+        className="orion-brand orion-grad"
+        style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 10 }}
+      >
         <img
           src={orionIcon}
-          alt=""
-          width={32}
-          height={32}
-          style={{ display: "inline-block", verticalAlign: "middle", marginRight: 8 }}
+          alt="Orion"
+          width={40}
+          height={40}
+          style={{
+            display: "block",
+            filter: "drop-shadow(0 0 8px rgba(0,212,255,0.55)) drop-shadow(0 0 18px rgba(139,92,246,0.35))",
+          }}
         />
-        <span style={{ verticalAlign: "middle" }}>ORION</span>
+        <span>ORION</span>
       </Link>
       <nav className="orion-nav" aria-label="Primary">
         {email ? (
