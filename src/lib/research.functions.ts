@@ -87,7 +87,7 @@ export const retrieveAndScoreSources = createServerFn({ method: "POST" })
       })
       .sort((a, b) => b.confidence - a.confidence);
 
-    return { sources };
+    return JSON.parse(JSON.stringify({ sources })) as { sources: Source[] };
   });
 
 // ---------- Server fn: analyse + synthesise ----------
