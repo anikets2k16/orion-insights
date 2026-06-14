@@ -26,7 +26,6 @@ import {
   ConfidenceBar,
   ConfidencePill,
   SectionCard,
-  SourceTypeChip,
 } from "@/components/research/ResultPrimitives";
 
 const supabase = _supabase as unknown as { from: (table: string) => any };
