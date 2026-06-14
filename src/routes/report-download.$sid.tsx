@@ -35,7 +35,7 @@ function ReportDownloadPage() {
       const topic = payload.topic ?? `report-${sid}`;
       setRetryData({ html: payload.html, topic });
 
-      const { buildReportPdfBlob, downloadBlob, safeFilename } = await import("@/lib/report-pdf.client");
+      const { buildReportPdfBlob, downloadBlob, safeFilename } = await import("@/lib/report-pdf-browser");
       const blob = await buildReportPdfBlob(payload.html, topic);
       downloadBlob(blob, `${safeFilename(topic)}.pdf`);
       setStatus("Your PDF download should begin automatically.");
@@ -63,7 +63,7 @@ function ReportDownloadPage() {
                 void startDownload();
                 return;
               }
-              import("@/lib/report-pdf.client")
+              import("@/lib/report-pdf-browser")
                 .then(({ buildReportPdfBlob, downloadBlob, safeFilename }) =>
                   buildReportPdfBlob(retryData.html, retryData.topic).then((blob) => {
                     downloadBlob(blob, `${safeFilename(retryData.topic)}.pdf`);
