@@ -163,8 +163,6 @@ function SessionPage() {
         <h1 className="orion-grad">Research Session</h1>
         <p className="orion-muted" style={{ wordBreak: "break-all" }}>
           {profile?.display_name?.trim() || "You"}
-          {" · "}
-          <span style={{ color: "var(--orion-blue)" }}>{PERSONA_LABELS[session.persona]}</span>
           {" · threshold "}
           {session.threshold.toFixed(2)}
         </p>
