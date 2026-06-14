@@ -28,8 +28,7 @@ import {
   ConfidencePill,
   SectionCard,
 } from "@/components/research/ResultPrimitives";
-
-type JsPDFConstructor = (typeof import("jspdf"))["jsPDF"];
+import { sanitizeReportHtml } from "@/lib/report-pdf.client";
 
 const supabase = _supabase as unknown as { from: (table: string) => any };
 
@@ -68,7 +67,6 @@ function SessionPage() {
   const [savedHtml, setSavedHtml] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const mirroredRef = useRef(false);
-  const jsPdfRef = useRef<JsPDFConstructor | null>(null);
   const profile = useProfile();
 
   useEffect(() => {
@@ -108,35 +106,18 @@ function SessionPage() {
       .eq("id", sid);
   }, [session, sid]);
 
-  useEffect(() => {
-    let cancelled = false;
-    import("jspdf")
-      .then(({ jsPDF }) => {
-        if (cancelled) return;
-        jsPdfRef.current = jsPDF;
-      })
-      .catch(() => {
-        if (cancelled) return;
-        jsPdfRef.current = null;
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  async function handleReportDownload(html: string, topic: string) {
-    const JsPDF = jsPdfRef.current;
-    if (!JsPDF) {
-      setError("PDF is still preparing. Please try again in a moment.");
+  function handleReportDownload(html: string, topic: string) {
+    window.localStorage.setItem(
+      `orion.report-download.${sid}`,
+      JSON.stringify({ html, topic, savedAt: Date.now() }),
+    );
+    const target = `/report-download/${sid}`;
+    const popup = window.open(target, "_blank", "noopener,noreferrer");
+    if (!popup) {
+      setError("Your browser blocked the download tab. Please allow pop-ups and try again.");
       return;
     }
-
-    try {
-      await downloadPdf(html, topic, JsPDF);
-      setError(null);
-    } catch {
-      setError("Couldn't download the PDF. Please try again.");
-    }
+    setError(null);
   }
 
   function submitCuration() {
@@ -173,7 +154,7 @@ function SessionPage() {
             <button
               className="orion-btn-primary"
               onClick={() => {
-                void handleReportDownload(sanitizeReportHtml(savedHtml), `report-${sid}`);
+                handleReportDownload(sanitizeReportHtml(savedHtml), `report-${sid}`);
               }}
               style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
             >
@@ -416,7 +397,7 @@ function SessionPage() {
               <button
                 className="orion-btn-primary"
                 onClick={() => {
-                  void handleReportDownload(reportHtml, session.topic);
+                  handleReportDownload(reportHtml, session.topic);
                 }}
                 style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
               >
@@ -436,88 +417,6 @@ function safeFilename(topic: string) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 60) || "orion-report";
-}
-
-function sanitizeReportHtml(html: string) {
-  return html.replace(/<p><em>Confidence threshold[^<]*<\/em><\/p>/i, "").trim();
-}
-
-function triggerBlobDownload(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.rel = "noopener";
-  document.body.appendChild(link);
-  link.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
-  link.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-async function downloadPdf(html: string, topic: string, JsPDF: JsPDFConstructor) {
-  const pdf = new JsPDF({ unit: "pt", format: "a4" });
-  const filename = `${safeFilename(topic)}.pdf`;
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  const pageHeight = pdf.internal.pageSize.getHeight();
-  const margin = 40;
-  const maxWidth = pageWidth - margin * 2;
-  let y = margin;
-
-  const ensureSpace = (h: number) => {
-    if (y + h > pageHeight - margin) {
-      pdf.addPage();
-      y = margin;
-    }
-  };
-  const writeLines = (text: string, size: number, bold = false) => {
-    if (!text.trim()) return;
-    pdf.setFont("helvetica", bold ? "bold" : "normal");
-    pdf.setFontSize(size);
-    const lines = pdf.splitTextToSize(text, maxWidth) as string[];
-    const lh = size * 1.35;
-    for (const line of lines) {
-      ensureSpace(lh);
-      pdf.text(line, margin, y);
-      y += lh;
-    }
-  };
-
-  // Title
-  writeLines(topic, 20, true);
-  y += 6;
-
-  // Parse HTML into a sequence of block nodes
-  const doc = new DOMParser().parseFromString(`<root>${html}</root>`, "text/html");
-  const root = doc.querySelector("root");
-  const blocks = root ? Array.from(root.querySelectorAll("p, h1, h2, h3, h4, li")) : [];
-
-  for (const el of blocks) {
-    const tag = el.tagName.toLowerCase();
-    const text = (el.textContent ?? "").replace(/\s+/g, " ").trim();
-    if (!text) continue;
-    if (tag === "h1" || tag === "h2") {
-      y += 8;
-      writeLines(text, 15, true);
-      y += 2;
-    } else if (tag === "h3" || tag === "h4") {
-      y += 6;
-      writeLines(text, 13, true);
-      y += 2;
-    } else if (tag === "li") {
-      writeLines(`• ${text}`, 11);
-    } else {
-      writeLines(text, 11);
-      y += 2;
-    }
-  }
-
-  try {
-    await (pdf as unknown as {
-      save: (name: string, options?: { returnPromise?: boolean }) => Promise<void> | void;
-    }).save(filename, { returnPromise: true });
-  } catch {
-    triggerBlobDownload(pdf.output("blob"), filename);
-  }
 }
 
 function escapeHtml(s: string) {

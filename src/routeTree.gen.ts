@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as ReportDownloadSidRouteImport } from './routes/report-download.$sid'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedAgentsRouteImport } from './routes/_authenticated/agents'
@@ -31,6 +32,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ReportDownloadSidRoute = ReportDownloadSidRouteImport.update({
+  id: '/report-download/$sid',
+  path: '/report-download/$sid',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   id: '/profile',
@@ -65,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/agents': typeof AuthenticatedAgentsRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/report-download/$sid': typeof ReportDownloadSidRoute
   '/session/$sid': typeof AuthenticatedSessionSidRoute
 }
 export interface FileRoutesByTo {
@@ -73,6 +80,7 @@ export interface FileRoutesByTo {
   '/agents': typeof AuthenticatedAgentsRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/report-download/$sid': typeof ReportDownloadSidRoute
   '/': typeof AuthenticatedIndexRoute
   '/session/$sid': typeof AuthenticatedSessionSidRoute
 }
@@ -84,6 +92,7 @@ export interface FileRoutesById {
   '/_authenticated/agents': typeof AuthenticatedAgentsRoute
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
+  '/report-download/$sid': typeof ReportDownloadSidRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/session/$sid': typeof AuthenticatedSessionSidRoute
 }
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
     | '/agents'
     | '/history'
     | '/profile'
+    | '/report-download/$sid'
     | '/session/$sid'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -104,6 +114,7 @@ export interface FileRouteTypes {
     | '/agents'
     | '/history'
     | '/profile'
+    | '/report-download/$sid'
     | '/'
     | '/session/$sid'
   id:
@@ -114,6 +125,7 @@ export interface FileRouteTypes {
     | '/_authenticated/agents'
     | '/_authenticated/history'
     | '/_authenticated/profile'
+    | '/report-download/$sid'
     | '/_authenticated/'
     | '/_authenticated/session/$sid'
   fileRoutesById: FileRoutesById
@@ -121,6 +133,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ReportDownloadSidRoute: typeof ReportDownloadSidRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -145,6 +158,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/report-download/$sid': {
+      id: '/report-download/$sid'
+      path: '/report-download/$sid'
+      fullPath: '/report-download/$sid'
+      preLoaderRoute: typeof ReportDownloadSidRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/profile': {
       id: '/_authenticated/profile'
@@ -208,6 +228,7 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ReportDownloadSidRoute: ReportDownloadSidRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
