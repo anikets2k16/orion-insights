@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Download } from "lucide-react";
 import { supabase as _supabase } from "@/lib/supabase-browser";
 import { buildReportPdfBlob, downloadBlob, safeFilename } from "@/lib/report-pdf.client";
+import { getSession } from "@/lib/research";
 
 const supabase = _supabase as unknown as { from: (table: string) => any };
 
@@ -20,6 +21,23 @@ function ReportDownloadPage() {
   async function startDownload() {
     setError(null);
     setStatus("Preparing your PDF…");
+
+    const localSession = getSession(sid);
+    if (localSession?.reportHtml) {
+      const topic = localSession.topic ?? `report-${sid}`;
+      setRetryData({ html: localSession.reportHtml, topic });
+
+      try {
+        const blob = await buildReportPdfBlob(localSession.reportHtml, topic);
+        downloadBlob(blob, `${safeFilename(topic)}.pdf`);
+        setStatus("Your PDF download should begin automatically.");
+        return;
+      } catch {
+        setStatus("Download failed");
+        setError("We couldn't generate the PDF in this tab.");
+        return;
+      }
+    }
 
     const { data, error: fetchError } = await supabase
       .from("research_sessions")
