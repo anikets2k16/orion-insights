@@ -131,24 +131,21 @@ function SessionPage() {
 
       const blob = await buildReportPdfBlob(html, topic);
       const filename = `${safeFilename(topic)}.pdf`;
+      const url = URL.createObjectURL(blob);
 
       if (popup && !popup.closed) {
-        const url = URL.createObjectURL(blob);
-        const link = popup.document.createElement("a");
-        link.href = url;
-        link.download = filename;
-        popup.document.body.appendChild(link);
-        link.click();
-        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-        popup.setTimeout(() => popup.close(), 1200);
+        popup.location.replace(url);
+        popup.document.title = filename;
       } else {
-        downloadBlob(blob, filename);
+        window.open(url, "_blank", "noopener,noreferrer");
       }
+
+      window.setTimeout(() => URL.revokeObjectURL(url), 120000);
     } catch {
       if (popup && !popup.closed) {
         popup.close();
       }
-      setError("Couldn't download the PDF. Please try again.");
+      setError("Couldn't open the PDF. Please try again.");
     } finally {
       setIsDownloading(false);
     }
@@ -193,7 +190,7 @@ function SessionPage() {
               disabled={isDownloading}
               style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
             >
-              <Download size={14} /> {isDownloading ? "Preparing PDF…" : "Download PDF"}
+              <Download size={14} /> {isDownloading ? "Preparing PDF…" : "Open PDF"}
             </button>
           </div>
         </section>
@@ -437,7 +434,7 @@ function SessionPage() {
                 disabled={isDownloading}
                 style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
               >
-                <Download size={14} /> {isDownloading ? "Preparing PDF…" : "Download PDF"}
+                <Download size={14} /> {isDownloading ? "Preparing PDF…" : "Open PDF"}
               </button>
             </div>
           </SectionCard>
