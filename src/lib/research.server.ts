@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import type { Source } from "./research";
+import type { Source } from "./research.types";
 
 interface TavilyResult {
   title: string;

@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { generateObject } from "ai";
 import { z } from "zod";
 
-import type { Analysis, Contradiction, Gap, Insight, Persona, Source } from "./research";
+import type { Analysis, Contradiction, Gap, Insight, Persona, Source } from "./research.types";
 import {
   citationsSchema,
   classifySource,
