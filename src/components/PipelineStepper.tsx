@@ -83,30 +83,23 @@ export function PipelineStepper({ phase, progress, status }: Props) {
         <div className="orion-stepper-nodes">
           {PIPELINE.map((p, i) => {
             const state = i < idx || isComplete ? "done" : i === idx ? (isError ? "" : "active") : "";
+            const labelCls = i < idx || isComplete ? "done" : i === idx ? "active" : "";
             return (
-              <div key={p} className={`orion-node ${state}`} title={p}>
-                {(i < idx || isComplete) && (
-                  <Check
-                    size={10}
-                    strokeWidth={3.5}
-                    style={{ color: "white", position: "absolute", inset: 0, margin: "auto" }}
-                  />
-                )}
+              <div key={p} className="orion-node-wrap">
+                <div className={`orion-node ${state}`} title={p}>
+                  {(i < idx || isComplete) && (
+                    <Check
+                      size={10}
+                      strokeWidth={3.5}
+                      style={{ color: "white", position: "absolute", inset: 0, margin: "auto" }}
+                    />
+                  )}
+                </div>
+                <span className={`orion-node-label ${labelCls}`}>{p}</span>
               </div>
             );
           })}
         </div>
-      </div>
-
-      <div className="orion-node-labels">
-        {PIPELINE.map((p, i) => {
-          const cls = i < idx || isComplete ? "done" : i === idx ? "active" : "";
-          return (
-            <span key={p} className={`orion-node-label ${cls}`}>
-              {p}
-            </span>
-          );
-        })}
       </div>
     </div>
   );
