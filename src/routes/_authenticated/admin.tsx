@@ -43,30 +43,7 @@ function AdminPage() {
       <main>
         <section className="orion-card">
           <h1 className="orion-grad">Admin</h1>
-          {access.data?.bootstrapAvailable ? (
-            <>
-              <p className="orion-muted">
-                No admin has been assigned yet. Claim the admin role for your account to manage users.
-              </p>
-              <button
-                className="orion-btn-primary"
-                onClick={async () => {
-                  // Trigger an admin-gated call; it auto-promotes the caller when no admin exists.
-                  try {
-                    await list();
-                    await access.refetch();
-                    await users.refetch();
-                  } catch (e) {
-                    alert(e instanceof Error ? e.message : String(e));
-                  }
-                }}
-              >
-                Claim admin role
-              </button>
-            </>
-          ) : (
-            <p className="orion-muted">You don't have permission to view this page.</p>
-          )}
+          <p className="orion-muted">You don't have permission to view this page.</p>
         </section>
       </main>
     );
