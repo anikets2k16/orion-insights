@@ -1,16 +1,5 @@
 import { jsPDF } from "jspdf";
-
-export function safeFilename(topic: string) {
-  return (topic || "orion-report")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60) || "orion-report";
-}
-
-export function sanitizeReportHtml(html: string) {
-  return html.replace(/<p><em>Confidence threshold[^<]*<\/em><\/p>/i, "").trim();
-}
+import { safeFilename, sanitizeReportHtml } from "@/lib/report-pdf.shared";
 
 export function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
@@ -82,3 +71,5 @@ export async function buildReportPdfBlob(html: string, topic: string) {
 
   return pdf.output("blob");
 }
+
+export { safeFilename, sanitizeReportHtml };
