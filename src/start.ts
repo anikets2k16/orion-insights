@@ -3,7 +3,7 @@ import { createStart, createMiddleware } from "@tanstack/react-start";
 import { renderErrorPage } from "./lib/error-page";
 import { attachSupabaseAuth } from "./lib/attach-supabase-auth";
 
-const errorMiddleware = createMiddleware().server(async ({ next }) => {
+const errorMiddleware = createMiddleware().server(async ({ next, request }) => {
   try {
     return await next();
   } catch (error) {
@@ -12,13 +12,7 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
     }
 
     const message = error instanceof Error ? error.message : "Unexpected server error";
-    const isServerFnRequest =
-      typeof Request !== "undefined" &&
-      arguments[0] != null &&
-      typeof arguments[0] === "object" &&
-      "request" in arguments[0] &&
-      arguments[0].request instanceof Request &&
-      arguments[0].request.url.includes("/_serverFn/");
+    const isServerFnRequest = request.url.includes("/_serverFn/");
 
     console.error(error);
 
