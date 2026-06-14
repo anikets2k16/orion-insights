@@ -21,6 +21,8 @@ import {
 } from "@/lib/research";
 import { PipelineStepper } from "@/components/PipelineStepper";
 import { useProfile } from "@/lib/profile";
+import { Download } from "lucide-react";
+import TurndownService from "turndown";
 import {
   CitationChips,
   ConfidenceBar,
@@ -362,10 +364,77 @@ function SessionPage() {
 
         {session.reportHtml && (
           <SectionCard key="report" icon={<FileText size={16} />} title="Report" delay={0.2}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+              <button
+                className="orion-btn-primary"
+                onClick={() => downloadMarkdown(session.reportHtml!, session.topic)}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+              >
+                <Download size={14} /> Markdown
+              </button>
+              <button
+                className="orion-btn-primary"
+                onClick={() => downloadPdf(session.reportHtml!, session.topic)}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+              >
+                <Download size={14} /> PDF
+              </button>
+            </div>
             <div className="orion-report-frame" dangerouslySetInnerHTML={{ __html: session.reportHtml }} />
           </SectionCard>
         )}
       </AnimatePresence>
     </main>
   );
+}
+
+function safeFilename(topic: string) {
+  return (topic || "orion-report")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60) || "orion-report";
+}
+
+function downloadMarkdown(html: string, topic: string) {
+  const td = new TurndownService({ headingStyle: "atx", codeBlockStyle: "fenced" });
+  const md = td.turndown(html);
+  const blob = new Blob([`# ${topic}\n\n${md}`], { type: "text/markdown;charset=utf-8" });
+  triggerDownload(blob, `${safeFilename(topic)}.md`);
+}
+
+async function downloadPdf(html: string, topic: string) {
+  const { default: html2pdf } = await import("html2pdf.js");
+  const container = document.createElement("div");
+  container.style.padding = "24px";
+  container.style.fontFamily = "system-ui, -apple-system, sans-serif";
+  container.style.color = "#111";
+  container.style.background = "#fff";
+  container.innerHTML = `<h1 style="margin-top:0">${escapeHtml(topic)}</h1>${html}`;
+  await html2pdf()
+    .set({
+      margin: 10,
+      filename: `${safeFilename(topic)}.pdf`,
+      image: { type: "jpeg", quality: 0.95 },
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+      pagebreak: { mode: ["css", "legacy"] },
+    })
+    .from(container)
+    .save();
+}
+
+function triggerDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function escapeHtml(s: string) {
+  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 }
