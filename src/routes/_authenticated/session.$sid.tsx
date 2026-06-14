@@ -251,7 +251,7 @@ function SessionPage() {
         </section>
       )}
 
-      {hasCuratedSources && (
+      {hasCuratedSources && session.status === "complete" && (
         <SectionCard key="sources" icon={<BookOpen size={16} />} title="Selected sources">
           <ol style={{ paddingLeft: 20, margin: 0, display: "grid", gap: 10 }}>
             {(session.sources ?? [])
