@@ -476,10 +476,14 @@ function buildReportObject(state: SessionState): Report {
 
 function renderReportHtml(r: Report): string {
   const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]!));
-  const persona = PERSONA_LABELS[r.persona];
+  const istTime = new Date(r.generated_at).toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    dateStyle: "medium",
+    timeStyle: "medium",
+  });
   return `
     <article style="line-height:1.6">
-      <p><em>Persona: ${esc(persona)} · confidence threshold ${r.threshold.toFixed(2)} · ${r.sources.length} sources</em></p>
+      <p><em>Confidence threshold ${r.threshold.toFixed(2)} · ${r.sources.length} sources</em></p>
       <h3>Executive summary</h3>
       <p>${esc(r.executive_summary)}</p>
       <h3>Analysis</h3>
@@ -506,7 +510,7 @@ function renderReportHtml(r: Report): string {
       </ul>
       <h3>Sources</h3>
       <ol>${r.sources.map((s) => `<li><a href="${s.url}" target="_blank" rel="noreferrer">${esc(s.title)}</a> — <span style="opacity:.7">${s.source_type}, confidence ${s.confidence.toFixed(2)}</span></li>`).join("")}</ol>
-      <p style="opacity:.6;margin-top:24px;font-size:13px">Generated ${esc(r.generated_at)} — ORION simulated pipeline.</p>
+      <p style="opacity:.6;margin-top:24px;font-size:13px">Generated ${esc(istTime)} IST — ORION simulated pipeline.</p>
     </article>
   `.trim();
 }
