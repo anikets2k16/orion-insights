@@ -363,21 +363,24 @@ function SessionPage() {
 
         {session.reportHtml && (
           <SectionCard key="report" icon={<FileText size={16} />} title="Report" delay={0.2}>
-            <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-              <button
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+              <Download size={14} />
+              <span className="orion-muted" style={{ fontSize: 13 }}>Download as</span>
+              <select
                 className="orion-btn-primary"
-                onClick={() => downloadMarkdown(session.reportHtml!, session.topic)}
-                style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+                defaultValue=""
+                onChange={(e) => {
+                  const v = e.target.value;
+                  e.target.value = "";
+                  if (v === "md") downloadMarkdown(session.reportHtml!, session.topic);
+                  else if (v === "pdf") downloadPdf(session.reportHtml!, session.topic);
+                }}
+                style={{ padding: "6px 10px", cursor: "pointer" }}
               >
-                <Download size={14} /> Markdown
-              </button>
-              <button
-                className="orion-btn-primary"
-                onClick={() => downloadPdf(session.reportHtml!, session.topic)}
-                style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-              >
-                <Download size={14} /> PDF
-              </button>
+                <option value="" disabled>Choose format…</option>
+                <option value="md">Markdown (.md)</option>
+                <option value="pdf">PDF (.pdf)</option>
+              </select>
             </div>
             <div className="orion-report-frame" dangerouslySetInnerHTML={{ __html: session.reportHtml }} />
           </SectionCard>
