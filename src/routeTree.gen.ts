@@ -17,6 +17,7 @@ import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedAgentsRouteImport } from './routes/_authenticated/agents'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedSessionSidRouteImport } from './routes/_authenticated/session.$sid'
+import { Route as AuthenticatedReportDownloadSidRouteImport } from './routes/_authenticated/report-download.$sid'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -57,6 +58,12 @@ const AuthenticatedSessionSidRoute = AuthenticatedSessionSidRouteImport.update({
   path: '/session/$sid',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedReportDownloadSidRoute =
+  AuthenticatedReportDownloadSidRouteImport.update({
+    id: '/report-download/$sid',
+    path: '/report-download/$sid',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -65,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/agents': typeof AuthenticatedAgentsRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/report-download/$sid': typeof AuthenticatedReportDownloadSidRoute
   '/session/$sid': typeof AuthenticatedSessionSidRoute
 }
 export interface FileRoutesByTo {
@@ -74,6 +82,7 @@ export interface FileRoutesByTo {
   '/history': typeof AuthenticatedHistoryRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/': typeof AuthenticatedIndexRoute
+  '/report-download/$sid': typeof AuthenticatedReportDownloadSidRoute
   '/session/$sid': typeof AuthenticatedSessionSidRoute
 }
 export interface FileRoutesById {
@@ -85,6 +94,7 @@ export interface FileRoutesById {
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/report-download/$sid': typeof AuthenticatedReportDownloadSidRoute
   '/_authenticated/session/$sid': typeof AuthenticatedSessionSidRoute
 }
 export interface FileRouteTypes {
@@ -96,6 +106,7 @@ export interface FileRouteTypes {
     | '/agents'
     | '/history'
     | '/profile'
+    | '/report-download/$sid'
     | '/session/$sid'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -105,6 +116,7 @@ export interface FileRouteTypes {
     | '/history'
     | '/profile'
     | '/'
+    | '/report-download/$sid'
     | '/session/$sid'
   id:
     | '__root__'
@@ -115,6 +127,7 @@ export interface FileRouteTypes {
     | '/_authenticated/history'
     | '/_authenticated/profile'
     | '/_authenticated/'
+    | '/_authenticated/report-download/$sid'
     | '/_authenticated/session/$sid'
   fileRoutesById: FileRoutesById
 }
@@ -181,6 +194,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSessionSidRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/report-download/$sid': {
+      id: '/_authenticated/report-download/$sid'
+      path: '/report-download/$sid'
+      fullPath: '/report-download/$sid'
+      preLoaderRoute: typeof AuthenticatedReportDownloadSidRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -190,6 +210,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedReportDownloadSidRoute: typeof AuthenticatedReportDownloadSidRoute
   AuthenticatedSessionSidRoute: typeof AuthenticatedSessionSidRoute
 }
 
@@ -199,6 +220,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedReportDownloadSidRoute: AuthenticatedReportDownloadSidRoute,
   AuthenticatedSessionSidRoute: AuthenticatedSessionSidRoute,
 }
 
@@ -212,3 +234,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
