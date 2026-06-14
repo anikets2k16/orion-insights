@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Download } from "lucide-react";
-import { buildReportPdfBlob, downloadBlob, safeFilename } from "@/lib/report-pdf.client";
 
 export const Route = createFileRoute("/report-download/$sid")({
   ssr: false,
@@ -36,6 +35,7 @@ function ReportDownloadPage() {
       const topic = payload.topic ?? `report-${sid}`;
       setRetryData({ html: payload.html, topic });
 
+      const { buildReportPdfBlob, downloadBlob, safeFilename } = await import("@/lib/report-pdf.client");
       const blob = await buildReportPdfBlob(payload.html, topic);
       downloadBlob(blob, `${safeFilename(topic)}.pdf`);
       setStatus("Your PDF download should begin automatically.");
@@ -63,12 +63,14 @@ function ReportDownloadPage() {
                 void startDownload();
                 return;
               }
-              buildReportPdfBlob(retryData.html, retryData.topic)
-                .then((blob) => {
-                  downloadBlob(blob, `${safeFilename(retryData.topic)}.pdf`);
-                  setError(null);
-                  setStatus("Your PDF download should begin automatically.");
-                })
+              import("@/lib/report-pdf.client")
+                .then(({ buildReportPdfBlob, downloadBlob, safeFilename }) =>
+                  buildReportPdfBlob(retryData.html, retryData.topic).then((blob) => {
+                    downloadBlob(blob, `${safeFilename(retryData.topic)}.pdf`);
+                    setError(null);
+                    setStatus("Your PDF download should begin automatically.");
+                  }),
+                )
                 .catch(() => {
                   setStatus("Download failed");
                   setError("We couldn't generate the PDF in this tab.");
