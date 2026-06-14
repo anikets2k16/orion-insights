@@ -20,6 +20,7 @@ import {
   type SessionState,
 } from "@/lib/research";
 import { PipelineStepper } from "@/components/PipelineStepper";
+import { useProfile } from "@/lib/profile";
 import {
   CitationChips,
   ConfidenceBar,
@@ -65,6 +66,7 @@ function SessionPage() {
   const [savedHtml, setSavedHtml] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const mirroredRef = useRef(false);
+  const profile = useProfile();
 
   useEffect(() => {
     resumeInFlight();
@@ -160,7 +162,7 @@ function SessionPage() {
       <section className="orion-card">
         <h1 className="orion-grad">Research Session</h1>
         <p className="orion-muted" style={{ wordBreak: "break-all" }}>
-          {sid}
+          {profile?.display_name?.trim() || "You"}
           {" · "}
           <span style={{ color: "var(--orion-blue)" }}>{PERSONA_LABELS[session.persona]}</span>
           {" · threshold "}
