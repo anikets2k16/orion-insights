@@ -7,7 +7,7 @@ import { getSession } from "@/lib/research";
 
 const supabase = _supabase as unknown as { from: (table: string) => any };
 
-export const Route = createFileRoute("/_authenticated/report-download/$sid")({
+export const Route = createFileRoute("/report-download/$sid")({
   ssr: false,
   component: ReportDownloadPage,
 });

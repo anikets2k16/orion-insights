@@ -106,7 +106,11 @@ function SessionPage() {
       .eq("id", sid);
   }, [session, sid]);
 
-  function handleReportDownload() {
+  function handleReportDownload(html: string, topic: string) {
+    window.localStorage.setItem(
+      `orion.report-download.${sid}`,
+      JSON.stringify({ html, topic, savedAt: Date.now() }),
+    );
     const target = `/report-download/${sid}`;
     const popup = window.open(target, "_blank", "noopener,noreferrer");
     if (!popup) {
@@ -150,7 +154,7 @@ function SessionPage() {
             <button
               className="orion-btn-primary"
               onClick={() => {
-                handleReportDownload();
+                handleReportDownload(sanitizeReportHtml(savedHtml), `report-${sid}`);
               }}
               style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
             >
@@ -393,7 +397,7 @@ function SessionPage() {
               <button
                 className="orion-btn-primary"
                 onClick={() => {
-                  handleReportDownload();
+                  handleReportDownload(reportHtml, session.topic);
                 }}
                 style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
               >
