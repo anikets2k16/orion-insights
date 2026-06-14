@@ -1,10 +1,20 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase-browser";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
+import { checkIsAdmin } from "@/lib/admin.functions";
 
 export function Nav() {
   const navigate = useNavigate();
   const [email, setEmail] = useState<string | null>(null);
+  const check = useServerFn(checkIsAdmin);
+  const adminQ = useQuery({
+    queryKey: ["admin", "access", email],
+    queryFn: () => check(),
+    enabled: !!email,
+    staleTime: 60_000,
+  });
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));
@@ -39,6 +49,11 @@ export function Nav() {
             <Link to="/profile" activeProps={{ className: "active" }}>
               Profile
             </Link>
+            {(adminQ.data?.isAdmin || adminQ.data?.bootstrapAvailable) && (
+              <Link to="/admin" activeProps={{ className: "active" }}>
+                Admin
+              </Link>
+            )}
             <button
               onClick={signOut}
               style={{

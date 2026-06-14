@@ -61,9 +61,7 @@ export function applyTheme(theme: Theme) {
   const root = document.documentElement;
   const resolved =
     theme === "system"
-      ? window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light"
+      ? "dark"
       : theme;
   root.classList.remove("light", "dark");
   root.classList.add(resolved);
