@@ -17,6 +17,7 @@ import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedAgentsRouteImport } from './routes/_authenticated/agents'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as ApiPublicReportPdfRouteImport } from './routes/api.public.report-pdf'
 import { Route as AuthenticatedSessionSidRouteImport } from './routes/_authenticated/session.$sid'
 
 const AuthRoute = AuthRouteImport.update({
@@ -58,6 +59,11 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicReportPdfRoute = ApiPublicReportPdfRouteImport.update({
+  id: '/api/public/report-pdf',
+  path: '/api/public/report-pdf',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedSessionSidRoute = AuthenticatedSessionSidRouteImport.update({
   id: '/session/$sid',
   path: '/session/$sid',
@@ -73,6 +79,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AuthenticatedProfileRoute
   '/report-download/$sid': typeof ReportDownloadSidRoute
   '/session/$sid': typeof AuthenticatedSessionSidRoute
+  '/api/public/report-pdf': typeof ApiPublicReportPdfRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
@@ -83,6 +90,7 @@ export interface FileRoutesByTo {
   '/report-download/$sid': typeof ReportDownloadSidRoute
   '/': typeof AuthenticatedIndexRoute
   '/session/$sid': typeof AuthenticatedSessionSidRoute
+  '/api/public/report-pdf': typeof ApiPublicReportPdfRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -95,6 +103,7 @@ export interface FileRoutesById {
   '/report-download/$sid': typeof ReportDownloadSidRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/session/$sid': typeof AuthenticatedSessionSidRoute
+  '/api/public/report-pdf': typeof ApiPublicReportPdfRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -107,6 +116,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/report-download/$sid'
     | '/session/$sid'
+    | '/api/public/report-pdf'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -117,6 +127,7 @@ export interface FileRouteTypes {
     | '/report-download/$sid'
     | '/'
     | '/session/$sid'
+    | '/api/public/report-pdf'
   id:
     | '__root__'
     | '/_authenticated'
@@ -128,12 +139,14 @@ export interface FileRouteTypes {
     | '/report-download/$sid'
     | '/_authenticated/'
     | '/_authenticated/session/$sid'
+    | '/api/public/report-pdf'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ReportDownloadSidRoute: typeof ReportDownloadSidRoute
+  ApiPublicReportPdfRoute: typeof ApiPublicReportPdfRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -194,6 +207,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/report-pdf': {
+      id: '/api/public/report-pdf'
+      path: '/api/public/report-pdf'
+      fullPath: '/api/public/report-pdf'
+      preLoaderRoute: typeof ApiPublicReportPdfRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/session/$sid': {
       id: '/_authenticated/session/$sid'
       path: '/session/$sid'
@@ -229,6 +249,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ReportDownloadSidRoute: ReportDownloadSidRoute,
+  ApiPublicReportPdfRoute: ApiPublicReportPdfRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

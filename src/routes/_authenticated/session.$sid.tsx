@@ -29,11 +29,8 @@ import {
   SectionCard,
 } from "@/components/research/ResultPrimitives";
 import {
-  buildReportPdfBlob,
-  downloadBlob,
-  safeFilename,
   sanitizeReportHtml,
-} from "@/lib/report-pdf.client";
+} from "@/lib/report-pdf.shared";
 
 const supabase = _supabase as unknown as { from: (table: string) => any };
 
@@ -116,7 +113,7 @@ function SessionPage() {
     setError(null);
     setIsDownloading(true);
 
-    const popup = window.open("", "_blank", "width=560,height=360");
+    const popup = window.open("", "_blank");
 
     try {
       if (popup && !popup.closed) {
@@ -129,23 +126,53 @@ function SessionPage() {
         `;
       }
 
-      const blob = await buildReportPdfBlob(html, topic);
-      const filename = `${safeFilename(topic)}.pdf`;
-      const url = URL.createObjectURL(blob);
-
       if (popup && !popup.closed) {
-        popup.location.replace(url);
-        popup.document.title = filename;
-      } else {
-        window.open(url, "_blank", "noopener,noreferrer");
-      }
+        const form = popup.document.createElement("form");
+        form.method = "POST";
+        form.action = "/api/public/report-pdf";
 
-      window.setTimeout(() => URL.revokeObjectURL(url), 120000);
+        const htmlInput = popup.document.createElement("input");
+        htmlInput.type = "hidden";
+        htmlInput.name = "html";
+        htmlInput.value = html;
+
+        const topicInput = popup.document.createElement("input");
+        topicInput.type = "hidden";
+        topicInput.name = "topic";
+        topicInput.value = topic;
+
+        form.appendChild(htmlInput);
+        form.appendChild(topicInput);
+        popup.document.body.appendChild(form);
+        form.submit();
+      } else {
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = "/api/public/report-pdf";
+        form.target = "_blank";
+        form.style.display = "none";
+
+        const htmlInput = document.createElement("input");
+        htmlInput.type = "hidden";
+        htmlInput.name = "html";
+        htmlInput.value = html;
+
+        const topicInput = document.createElement("input");
+        topicInput.type = "hidden";
+        topicInput.name = "topic";
+        topicInput.value = topic;
+
+        form.appendChild(htmlInput);
+        form.appendChild(topicInput);
+        document.body.appendChild(form);
+        form.submit();
+        form.remove();
+      }
     } catch {
       if (popup && !popup.closed) {
         popup.close();
       }
-      setError("Couldn't open the PDF. Please try again.");
+      setError("Couldn't generate the PDF. Please try again.");
     } finally {
       setIsDownloading(false);
     }
