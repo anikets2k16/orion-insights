@@ -251,6 +251,36 @@ function SessionPage() {
         </section>
       )}
 
+      {hasCuratedSources && (
+        <SectionCard key="sources" icon={<BookOpen size={16} />} title="Selected sources">
+          <ol style={{ paddingLeft: 20, margin: 0, display: "grid", gap: 10 }}>
+            {(session.sources ?? [])
+              .filter((s) => session.curated!.includes(s.url))
+              .sort((a, b) => (a.citation ?? 0) - (b.citation ?? 0))
+              .map((s) => (
+                <li
+                  key={s.url}
+                  id={s.citation != null ? `src-${s.citation}` : undefined}
+                  style={{ lineHeight: 1.5 }}
+                >
+                  <a href={s.url} target="_blank" rel="noreferrer">{s.title}</a>
+                  <span className="orion-muted" style={{ marginLeft: 8, fontSize: 12 }}>
+                    {Math.round(s.confidence * 100)}%
+                  </span>
+                  {s.snippet && (
+                    <div className="orion-muted" style={{ marginTop: 4, fontSize: 12, fontStyle: "italic" }}>
+                      "{s.snippet}"
+                    </div>
+                  )}
+                  <div className="orion-muted" style={{ marginTop: 2, fontSize: 11, wordBreak: "break-all" }}>
+                    {s.url}
+                  </div>
+                </li>
+              ))}
+          </ol>
+        </SectionCard>
+      )}
+
       <AnimatePresence>
         {derived && hasCompletedStage("analyse") && (
           <SectionCard key="analysis" icon={<Brain size={16} />} title="Critical analysis">
@@ -370,36 +400,6 @@ function SessionPage() {
         {reportHtml && (
           <SectionCard key="report" icon={<FileText size={16} />} title="Report" delay={0.2}>
             <div className="orion-report-frame" dangerouslySetInnerHTML={{ __html: reportHtml }} />
-          </SectionCard>
-        )}
-
-        {hasCuratedSources && (
-          <SectionCard key="sources" icon={<BookOpen size={16} />} title="Sources" delay={0.22}>
-            <ol style={{ paddingLeft: 20, margin: 0, display: "grid", gap: 10 }}>
-              {(session.sources ?? [])
-                .filter((s) => session.curated!.includes(s.url))
-                .sort((a, b) => (a.citation ?? 0) - (b.citation ?? 0))
-                .map((s) => (
-                  <li
-                    key={s.url}
-                    id={s.citation != null ? `src-${s.citation}` : undefined}
-                    style={{ lineHeight: 1.5 }}
-                  >
-                    <a href={s.url} target="_blank" rel="noreferrer">{s.title}</a>
-                    <span className="orion-muted" style={{ marginLeft: 8, fontSize: 12 }}>
-                      {Math.round(s.confidence * 100)}%
-                    </span>
-                    {s.snippet && (
-                      <div className="orion-muted" style={{ marginTop: 4, fontSize: 12, fontStyle: "italic" }}>
-                        "{s.snippet}"
-                      </div>
-                    )}
-                    <div className="orion-muted" style={{ marginTop: 2, fontSize: 11, wordBreak: "break-all" }}>
-                      {s.url}
-                    </div>
-                  </li>
-                ))}
-            </ol>
           </SectionCard>
         )}
       </AnimatePresence>
