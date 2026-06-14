@@ -20,12 +20,12 @@ import {
   type SessionState,
 } from "@/lib/research";
 import { PipelineStepper } from "@/components/PipelineStepper";
+import { useProfile } from "@/lib/profile";
 import {
   CitationChips,
   ConfidenceBar,
   ConfidencePill,
   SectionCard,
-  SourceTypeChip,
 } from "@/components/research/ResultPrimitives";
 
 const supabase = _supabase as unknown as { from: (table: string) => any };
@@ -65,6 +65,7 @@ function SessionPage() {
   const [savedHtml, setSavedHtml] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const mirroredRef = useRef(false);
+  const profile = useProfile();
 
   useEffect(() => {
     resumeInFlight();
@@ -160,7 +161,7 @@ function SessionPage() {
       <section className="orion-card">
         <h1 className="orion-grad">Research Session</h1>
         <p className="orion-muted" style={{ wordBreak: "break-all" }}>
-          {sid}
+          {profile?.display_name?.trim() || "You"}
           {" · "}
           <span style={{ color: "var(--orion-blue)" }}>{PERSONA_LABELS[session.persona]}</span>
           {" · threshold "}
@@ -211,11 +212,7 @@ function SessionPage() {
                   checked={!!selected[s.url]}
                   onChange={(e) => setSelected({ ...selected, [s.url]: e.target.checked })}
                 />
-                {s.citation != null && (
-                  <span className="orion-muted" style={{ marginRight: 6 }}>[{s.citation}]</span>
-                )}
-                <a href={s.url} target="_blank" rel="noreferrer">{s.title}</a>{" "}
-                <SourceTypeChip type={s.source_type} />
+                <a href={s.url} target="_blank" rel="noreferrer">{s.title}</a>
                 {s.rationale && (
                   <div className="orion-muted" style={{ marginTop: 4, fontSize: 13 }}>{s.rationale}</div>
                 )}
