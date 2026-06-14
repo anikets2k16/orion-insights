@@ -1,11 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Download } from "lucide-react";
-import { supabase as _supabase } from "@/lib/supabase-browser";
 import { buildReportPdfBlob, downloadBlob, safeFilename } from "@/lib/report-pdf.client";
-import { getSession } from "@/lib/research";
-
-const supabase = _supabase as unknown as { from: (table: string) => any };
 
 export const Route = createFileRoute("/report-download/$sid")({
   ssr: false,
@@ -22,40 +18,26 @@ function ReportDownloadPage() {
     setError(null);
     setStatus("Preparing your PDF…");
 
-    const localSession = getSession(sid);
-    if (localSession?.reportHtml) {
-      const topic = localSession.topic ?? `report-${sid}`;
-      setRetryData({ html: localSession.reportHtml, topic });
-
-      try {
-        const blob = await buildReportPdfBlob(localSession.reportHtml, topic);
-        downloadBlob(blob, `${safeFilename(topic)}.pdf`);
-        setStatus("Your PDF download should begin automatically.");
-        return;
-      } catch {
-        setStatus("Download failed");
-        setError("We couldn't generate the PDF in this tab.");
-        return;
-      }
-    }
-
-    const { data, error: fetchError } = await supabase
-      .from("research_sessions")
-      .select("topic, report_html")
-      .eq("id", sid)
-      .maybeSingle();
-
-    if (fetchError || !data?.report_html) {
+    const raw = window.localStorage.getItem(`orion.report-download.${sid}`);
+    if (!raw) {
       setStatus("Download unavailable");
       setError("We couldn't load this report for download.");
       return;
     }
 
-    setRetryData({ html: data.report_html, topic: data.topic ?? `report-${sid}` });
-
     try {
-      const blob = await buildReportPdfBlob(data.report_html, data.topic ?? `report-${sid}`);
-      downloadBlob(blob, `${safeFilename(data.topic ?? `report-${sid}`)}.pdf`);
+      const payload = JSON.parse(raw) as { html?: string; topic?: string; savedAt?: number };
+      if (!payload.html) {
+        setStatus("Download unavailable");
+        setError("We couldn't load this report for download.");
+        return;
+      }
+
+      const topic = payload.topic ?? `report-${sid}`;
+      setRetryData({ html: payload.html, topic });
+
+      const blob = await buildReportPdfBlob(payload.html, topic);
+      downloadBlob(blob, `${safeFilename(topic)}.pdf`);
       setStatus("Your PDF download should begin automatically.");
     } catch {
       setStatus("Download failed");
