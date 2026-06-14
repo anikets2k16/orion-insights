@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Download } from "lucide-react";
 import { buildReportPdfBlob, downloadBlob, safeFilename } from "@/lib/report-pdf.client";
 
-export const Route = createFileRoute("/_authenticated/report-download/$sid")({
+export const Route = createFileRoute("/report-download/$sid")({
   ssr: false,
   component: ReportDownloadPage,
 });
