@@ -21,7 +21,6 @@ import {
 } from "@/lib/research";
 import { PipelineStepper } from "@/components/PipelineStepper";
 import { useProfile } from "@/lib/profile";
-import { Download } from "lucide-react";
 import {
   CitationChips,
   ConfidenceBar,
@@ -68,7 +67,6 @@ function SessionPage() {
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [savedHtml, setSavedHtml] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isDownloading, setIsDownloading] = useState(false);
   const mirroredRef = useRef(false);
   const profile = useProfile();
 
@@ -109,76 +107,6 @@ function SessionPage() {
       .eq("id", sid);
   }, [session, sid]);
 
-  async function handleReportDownload(html: string, topic: string) {
-    setError(null);
-    setIsDownloading(true);
-
-    const pdfEndpoint = `${window.location.origin}/api/public/report-pdf`;
-    const popup = window.open("", "_blank");
-
-    try {
-      if (popup && !popup.closed) {
-        popup.document.title = "Preparing PDF…";
-        popup.document.body.innerHTML = `
-          <main style="font-family: Arial, sans-serif; padding: 24px; line-height: 1.5; color: #111827;">
-            <h1 style="font-size: 20px; margin: 0 0 8px;">Preparing your PDF…</h1>
-            <p style="margin: 0; color: #4b5563;">Your download should start automatically in a moment.</p>
-          </main>
-        `;
-      }
-
-      if (popup && !popup.closed) {
-        const form = popup.document.createElement("form");
-        form.method = "POST";
-        form.action = pdfEndpoint;
-
-        const htmlInput = popup.document.createElement("input");
-        htmlInput.type = "hidden";
-        htmlInput.name = "html";
-        htmlInput.value = html;
-
-        const topicInput = popup.document.createElement("input");
-        topicInput.type = "hidden";
-        topicInput.name = "topic";
-        topicInput.value = topic;
-
-        form.appendChild(htmlInput);
-        form.appendChild(topicInput);
-        popup.document.body.appendChild(form);
-        form.submit();
-      } else {
-        const form = document.createElement("form");
-        form.method = "POST";
-        form.action = pdfEndpoint;
-        form.target = "_blank";
-        form.style.display = "none";
-
-        const htmlInput = document.createElement("input");
-        htmlInput.type = "hidden";
-        htmlInput.name = "html";
-        htmlInput.value = html;
-
-        const topicInput = document.createElement("input");
-        topicInput.type = "hidden";
-        topicInput.name = "topic";
-        topicInput.value = topic;
-
-        form.appendChild(htmlInput);
-        form.appendChild(topicInput);
-        document.body.appendChild(form);
-        form.submit();
-        form.remove();
-      }
-    } catch {
-      if (popup && !popup.closed) {
-        popup.close();
-      }
-      setError("Couldn't generate the PDF. Please try again.");
-    } finally {
-      setIsDownloading(false);
-    }
-  }
-
   function submitCuration() {
     if (!session?.sources) return;
     const urls = Object.keys(selected).filter((u) => selected[u]);
@@ -209,18 +137,6 @@ function SessionPage() {
           <h1 className="orion-grad">Saved Report</h1>
           <div className="orion-report-frame" dangerouslySetInnerHTML={{ __html: sanitizeReportHtml(savedHtml) }} />
           {error && <p style={{ marginTop: 14, color: "#ff7a90" }}>{error}</p>}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-            <button
-              className="orion-btn-primary"
-              onClick={() => {
-                void handleReportDownload(sanitizeReportHtml(savedHtml), `report-${sid}`);
-              }}
-              disabled={isDownloading}
-              style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-            >
-              <Download size={14} /> {isDownloading ? "Preparing PDF…" : "Open PDF"}
-            </button>
-          </div>
         </section>
       </main>
     );
@@ -453,18 +369,6 @@ function SessionPage() {
         {reportHtml && (
           <SectionCard key="report" icon={<FileText size={16} />} title="Report" delay={0.2}>
             <div className="orion-report-frame" dangerouslySetInnerHTML={{ __html: reportHtml }} />
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-              <button
-                className="orion-btn-primary"
-                onClick={() => {
-                  void handleReportDownload(reportHtml, session.topic);
-                }}
-                disabled={isDownloading}
-                style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-              >
-                <Download size={14} /> {isDownloading ? "Preparing PDF…" : "Open PDF"}
-              </button>
-            </div>
           </SectionCard>
         )}
       </AnimatePresence>
