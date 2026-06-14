@@ -1,4 +1,5 @@
-import { createFileRoute, useServerFn } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listAllUsers, setAdminRole, checkIsAdmin, type AdminUser } from "@/lib/admin.functions";
 
