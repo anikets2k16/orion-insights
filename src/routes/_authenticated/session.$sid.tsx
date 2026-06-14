@@ -124,6 +124,21 @@ function SessionPage() {
     };
   }, []);
 
+  async function handleReportDownload(html: string, topic: string) {
+    const JsPDF = jsPdfRef.current;
+    if (!JsPDF) {
+      setError("PDF is still preparing. Please try again in a moment.");
+      return;
+    }
+
+    try {
+      await downloadPdf(html, topic, JsPDF);
+      setError(null);
+    } catch {
+      setError("Couldn't download the PDF. Please try again.");
+    }
+  }
+
   function submitCuration() {
     if (!session?.sources) return;
     const urls = Object.keys(selected).filter((u) => selected[u]);
@@ -153,17 +168,12 @@ function SessionPage() {
         <section className="orion-card">
           <h1 className="orion-grad">Saved Report</h1>
           <div className="orion-report-frame" dangerouslySetInnerHTML={{ __html: sanitizeReportHtml(savedHtml) }} />
+          {error && <p style={{ marginTop: 14, color: "#ff7a90" }}>{error}</p>}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
             <button
               className="orion-btn-primary"
               onClick={() => {
-                const JsPDF = jsPdfRef.current;
-                if (!JsPDF) {
-                  setError("PDF is still preparing. Please try again in a moment.");
-                  return;
-                }
-                setError(null);
-                downloadPdf(sanitizeReportHtml(savedHtml), `report-${sid}`, JsPDF);
+                void handleReportDownload(sanitizeReportHtml(savedHtml), `report-${sid}`);
               }}
               style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
             >
@@ -406,13 +416,7 @@ function SessionPage() {
               <button
                 className="orion-btn-primary"
                 onClick={() => {
-                  const JsPDF = jsPdfRef.current;
-                  if (!JsPDF) {
-                    setError("PDF is still preparing. Please try again in a moment.");
-                    return;
-                  }
-                  setError(null);
-                  downloadPdf(reportHtml, session.topic, JsPDF);
+                  void handleReportDownload(reportHtml, session.topic);
                 }}
                 style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
               >
@@ -438,8 +442,21 @@ function sanitizeReportHtml(html: string) {
   return html.replace(/<p><em>Confidence threshold[^<]*<\/em><\/p>/i, "").trim();
 }
 
-function downloadPdf(html: string, topic: string, JsPDF: JsPDFConstructor) {
+function triggerBlobDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.rel = "noopener";
+  document.body.appendChild(link);
+  link.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function downloadPdf(html: string, topic: string, JsPDF: JsPDFConstructor) {
   const pdf = new JsPDF({ unit: "pt", format: "a4" });
+  const filename = `${safeFilename(topic)}.pdf`;
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
   const margin = 40;
@@ -494,15 +511,13 @@ function downloadPdf(html: string, topic: string, JsPDF: JsPDFConstructor) {
     }
   }
 
-  const blob = pdf.output("blob");
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `${safeFilename(topic)}.pdf`;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  try {
+    await (pdf as unknown as {
+      save: (name: string, options?: { returnPromise?: boolean }) => Promise<void> | void;
+    }).save(filename, { returnPromise: true });
+  } catch {
+    triggerBlobDownload(pdf.output("blob"), filename);
+  }
 }
 
 function escapeHtml(s: string) {
