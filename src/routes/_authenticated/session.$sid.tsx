@@ -28,7 +28,12 @@ import {
   ConfidencePill,
   SectionCard,
 } from "@/components/research/ResultPrimitives";
-import { sanitizeReportHtml } from "@/lib/report-pdf.client";
+import {
+  buildReportPdfBlob,
+  downloadBlob,
+  safeFilename,
+  sanitizeReportHtml,
+} from "@/lib/report-pdf.client";
 
 const supabase = _supabase as unknown as { from: (table: string) => any };
 
@@ -66,6 +71,7 @@ function SessionPage() {
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [savedHtml, setSavedHtml] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
   const mirroredRef = useRef(false);
   const profile = useProfile();
 
@@ -106,18 +112,46 @@ function SessionPage() {
       .eq("id", sid);
   }, [session, sid]);
 
-  function handleReportDownload(html: string, topic: string) {
-    window.localStorage.setItem(
-      `orion.report-download.${sid}`,
-      JSON.stringify({ html, topic, savedAt: Date.now() }),
-    );
-    const target = `/report-download/${sid}`;
-    const popup = window.open(target, "_blank", "noopener,noreferrer");
-    if (!popup) {
-      setError("Your browser blocked the download tab. Please allow pop-ups and try again.");
-      return;
-    }
+  async function handleReportDownload(html: string, topic: string) {
     setError(null);
+    setIsDownloading(true);
+
+    const popup = window.open("", "_blank", "width=560,height=360");
+
+    try {
+      if (popup && !popup.closed) {
+        popup.document.title = "Preparing PDF…";
+        popup.document.body.innerHTML = `
+          <main style="font-family: Arial, sans-serif; padding: 24px; line-height: 1.5; color: #111827;">
+            <h1 style="font-size: 20px; margin: 0 0 8px;">Preparing your PDF…</h1>
+            <p style="margin: 0; color: #4b5563;">Your download should start automatically in a moment.</p>
+          </main>
+        `;
+      }
+
+      const blob = await buildReportPdfBlob(html, topic);
+      const filename = `${safeFilename(topic)}.pdf`;
+
+      if (popup && !popup.closed) {
+        const url = URL.createObjectURL(blob);
+        const link = popup.document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        popup.document.body.appendChild(link);
+        link.click();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        popup.setTimeout(() => popup.close(), 1200);
+      } else {
+        downloadBlob(blob, filename);
+      }
+    } catch {
+      if (popup && !popup.closed) {
+        popup.close();
+      }
+      setError("Couldn't download the PDF. Please try again.");
+    } finally {
+      setIsDownloading(false);
+    }
   }
 
   function submitCuration() {
@@ -154,11 +188,12 @@ function SessionPage() {
             <button
               className="orion-btn-primary"
               onClick={() => {
-                handleReportDownload(sanitizeReportHtml(savedHtml), `report-${sid}`);
+                void handleReportDownload(sanitizeReportHtml(savedHtml), `report-${sid}`);
               }}
+              disabled={isDownloading}
               style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
             >
-              <Download size={14} /> Download PDF
+              <Download size={14} /> {isDownloading ? "Preparing PDF…" : "Download PDF"}
             </button>
           </div>
         </section>
@@ -397,11 +432,12 @@ function SessionPage() {
               <button
                 className="orion-btn-primary"
                 onClick={() => {
-                  handleReportDownload(reportHtml, session.topic);
+                  void handleReportDownload(reportHtml, session.topic);
                 }}
+                disabled={isDownloading}
                 style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
               >
-                <Download size={14} /> Download PDF
+                <Download size={14} /> {isDownloading ? "Preparing PDF…" : "Download PDF"}
               </button>
             </div>
           </SectionCard>
@@ -409,16 +445,4 @@ function SessionPage() {
       </AnimatePresence>
     </main>
   );
-}
-
-function safeFilename(topic: string) {
-  return (topic || "orion-report")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60) || "orion-report";
-}
-
-function escapeHtml(s: string) {
-  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 }
