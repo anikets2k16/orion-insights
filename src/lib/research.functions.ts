@@ -30,8 +30,9 @@ export const retrieveAndScoreSources = createServerFn({ method: "POST" })
     if (raw.length === 0) return { sources: [] };
 
     const gateway = createLovableAiGatewayProvider(lovableKey);
-    // Use the approved high-reasoning model for scoring
-    const model = gateway("google/gemini-2.5-pro");
+    // Scoring is a lightweight classification task — use the fast model.
+    // Pro is reserved for synthesis where reasoning quality matters.
+    const model = gateway("google/gemini-3-flash-preview");
 
     const docs = raw.map((r, i) => ({
       idx: i + 1,
